@@ -1,177 +1,176 @@
 import streamlit as st
 import yfinance as yf
 import pandas as pd
-import time
 
-# --- SAYFA AYARLARI (Dark & Whale Tema) ---
-st.set_page_config(page_title="BIST Balina Avcısı", layout="wide", page_icon="🐳")
+# --- SAYFA AYARLARI ---
+st.set_page_config(page_title="Global Balina Avcısı", layout="wide", page_icon="🐳")
 
-# Özel CSS (O ekran görüntüsündeki gibi havalı olsun)
+# --- CSS TASARIMI (Sekmeler ve Kartlar) ---
 st.markdown("""
     <style>
-    .stApp {
-        background-color: #0a0e17;
-        color: white;
-    }
-    .stMetric {
-        background-color: #111827;
-        padding: 15px;
+    .stApp { background-color: #0a0e17; color: white; }
+    
+    /* Sekme Tasarımı */
+    .stTabs [data-baseweb="tab-list"] { gap: 20px; }
+    .stTabs [data-baseweb="tab"] {
+        height: 50px;
         border-radius: 10px;
-        border: 1px solid #1f2937;
-    }
-    h1, h2, h3 {
-        color: #38bdf8 !important; /* Parlak Mavi */
-    }
-    .balina-karti {
-        background: linear-gradient(90deg, #0f2027 0%, #203a43 50%, #2c5364 100%);
-        padding: 20px;
-        border-radius: 15px;
-        border-left: 5px solid #38bdf8;
-        margin-bottom: 10px;
-    }
-    .signal-box {
-        padding: 10px;
-        border-radius: 5px;
-        text-align: center;
+        background-color: #1f2937;
+        color: white;
         font-weight: bold;
     }
-    .buy { background-color: #059669; color: white; }
-    .sell { background-color: #dc2626; color: white; }
+    .stTabs [aria-selected="true"] {
+        background-color: #38bdf8 !important;
+        color: black !important;
+    }
+
+    /* Balina Kartı */
+    .balina-karti {
+        padding: 20px;
+        border-radius: 15px;
+        margin-bottom: 15px;
+        border: 1px solid #374151;
+    }
+    .bist-card { background: linear-gradient(90deg, #0f2027 0%, #2c5364 100%); border-left: 5px solid #38bdf8; }
+    .crypto-card { background: linear-gradient(90deg, #201c05 0%, #423808 100%); border-left: 5px solid #facc15; }
+    
+    .signal-box {
+        padding: 8px 15px;
+        border-radius: 8px;
+        font-weight: bold;
+        text-align: center;
+        display: inline-block;
+    }
+    .buy { background-color: #059669; color: white; box-shadow: 0 0 10px #059669; }
+    .sell { background-color: #dc2626; color: white; box-shadow: 0 0 10px #dc2626; }
     </style>
 """, unsafe_allow_html=True)
 
-# --- BAŞLIK ---
-col1, col2 = st.columns([1, 4])
-with col1:
-    st.markdown("# 🐳")
-with col2:
-    st.title("BIST Balina Avcısı (Whale Hunter)")
-    st.caption("Yapay Zeka Destekli Hacim ve Momentum Tarayıcısı")
+st.title("🐳 Global Balina Avcısı")
+st.caption("Borsa İstanbul & Binance Hacim Tarayıcısı")
 
-# --- HİSSE LİSTESİ (BIST 30'dan bazıları + HDFGS) ---
+# --- HİSSE VE COIN LİSTELERİ ---
 hisseler = [
     "HDFGS.IS", "THYAO.IS", "ASELS.IS", "GARAN.IS", "SISE.IS", 
     "EREGL.IS", "KCHOL.IS", "AKBNK.IS", "TUPRS.IS", "SASA.IS", 
-    "HEKTS.IS", "PETKM.IS", "BIMAS.IS", "EKGYO.IS", "ODAS.IS"
+    "HEKTS.IS", "PETKM.IS", "BIMAS.IS", "EKGYO.IS", "ODAS.IS",
+    "KONTR.IS", "GUBRF.IS", "FROTO.IS", "TTKOM.IS", "ISCTR.IS"
 ]
 
-# --- BALİNA TARAMA MOTORU ---
-def balina_tara():
-    sinyaller = []
-    
-    my_bar = st.progress(0)
-    step = 1.0 / len(hisseler)
-    current_step = 0.0
+kriptolar = [
+    "BTC-USD", "ETH-USD", "BNB-USD", "SOL-USD", "XRP-USD",
+    "DOGE-USD", "ADA-USD", "AVAX-USD", "SHIB-USD", "DOT-USD",
+    "MATIC-USD", "LTC-USD", "TRX-USD", "LINK-USD", "ATOM-USD",
+    "FET-USD", "RNDR-USD", "PEPE-USD", "FLOKI-USD", "NEAR-USD"
+]
 
-    for symbol in hisseler:
+# --- TARAMA FONKSİYONU ---
+def tarama_yap(liste, piyasa_tipi):
+    sinyaller = []
+    progress_text = "BIST Taranıyor..." if piyasa_tipi == "BIST" else "Binance Taranıyor..."
+    my_bar = st.progress(0, text=progress_text)
+    
+    adim = 1.0 / len(liste)
+    suan = 0.0
+
+    for symbol in liste:
         try:
-            # Son 5 günlük veriyi çek (Saatlik bazda)
-            df = yf.download(symbol, period="5d", interval="1h", progress=False)
+            # Veri Çek (Kripto 7/24 olduğu için son 2 gün yeterli)
+            period = "5d" if piyasa_tipi == "BIST" else "2d"
+            df = yf.download(symbol, period=period, interval="1h", progress=False)
             
             if hasattr(df.columns, 'levels'): df.columns = df.columns.get_level_values(0)
             
             if len(df) > 20:
-                son_mum = df.iloc[-1]
+                son = df.iloc[-1]
                 
-                # 1. HACİM ANALİZİ (Balina Tespiti)
-                son_hacim = son_mum['Volume']
-                ort_hacim = df['Volume'].rolling(20).mean().iloc[-1] # 20 saatlik ortalama
+                # 1. Hacim Patlaması
+                hacim_son = son['Volume']
+                hacim_ort = df['Volume'].rolling(24).mean().iloc[-1] # 24 saatlik ortalama
+                kat = hacim_son / hacim_ort if hacim_ort > 0 else 0
                 
-                hacim_kati = son_hacim / ort_hacim if ort_hacim > 0 else 0
-                
-                # 2. FİYAT ANALİZİ
-                fiyat = son_mum['Close']
+                # 2. Fiyat Değişimi
+                fiyat = son['Close']
                 degisim = ((fiyat - df['Open'].iloc[-1]) / df['Open'].iloc[-1]) * 100
                 
-                # 3. RSI (Momentum)
-                delta = df['Close'].diff()
-                gain = (delta.where(delta > 0, 0)).rolling(14).mean()
-                loss = (-delta.where(delta < 0, 0)).rolling(14).mean()
-                rs = gain / loss
-                rsi = 100 - (100 / (1 + rs)).iloc[-1]
-
-                # --- SİNYAL ALGORİTMASI ---
-                durum = "NÖTR"
-                renk = "gray"
-                sebep = ""
-
-                # Kural: Hacim 2 katına çıkmışsa VE Fiyat Artıyorsa -> BALİNA GİRDİ
-                if hacim_kati > 2.0 and degisim > 0:
-                    durum = "WHALE BUY 🚀"
-                    renk = "buy"
-                    sebep = f"Hacim Patlaması ({hacim_kati:.1f}x)"
+                # Sinyal Mantığı
+                durum = None
                 
-                # Kural: Hacim patlamış ama Fiyat Düşüyorsa -> BALİNA SATIYOR
-                elif hacim_kati > 2.0 and degisim < 0:
-                    durum = "WHALE DUMP 🔻"
-                    renk = "sell"
-                    sebep = f"Panik Satış ({hacim_kati:.1f}x)"
+                # Kriter: Hacim 2.5 katına çıkmışsa BALİNA VARDIR
+                if kat > 2.5:
+                    if degisim > 0.5:
+                        durum = "WHALE BUY 🚀"
+                        renk = "buy"
+                    elif degisim < -0.5:
+                        durum = "WHALE DUMP 🔻"
+                        renk = "sell"
                 
-                # Kural: RSI Dipteyse
-                elif rsi < 30:
-                    durum = "DİP ALIMI 🌱"
-                    renk = "buy"
-                    sebep = "Aşırı Ucuz (RSI < 30)"
-
-                if durum != "NÖTR":
+                if durum:
+                    # Temiz isim (IS ve USD sil)
+                    isim = symbol.replace(".IS", "").replace("-USD", "")
+                    
                     sinyaller.append({
-                        "Hisse": symbol.replace(".IS", ""),
+                        "Sembol": isim,
                         "Fiyat": fiyat,
-                        "Değişim": degisim,
-                        "Hacim_Katı": hacim_kati,
+                        "Degisim": degisim,
+                        "HacimKat": kat,
                         "Sinyal": durum,
-                        "Renk": renk,
-                        "Sebep": sebep
+                        "Renk": renk
                     })
         except:
             pass
         
-        current_step += step
-        my_bar.progress(min(current_step, 1.0))
+        suan += adim
+        my_bar.progress(min(suan, 1.0), text=f"{symbol} taranıyor...")
     
     my_bar.empty()
     return sinyaller
 
-# --- ARAYÜZ ---
+# --- SEKMELER ---
+tab1, tab2 = st.tabs(["🏙️ BORSA İSTANBUL", "₿ KRİPTO (BINANCE)"])
 
-if st.button("RADARI ÇALIŞTIR 📡", type="primary"):
-    with st.spinner('Okyanus taranıyor... Balinalar aranıyor...'):
-        sonuclar = balina_tara()
+# --- SEKME 1: BORSA ---
+with tab1:
+    st.header("BIST 30 Balina Radarı")
+    if st.button("BIST'i Tara 📡", key="btn_bist", type="primary"):
+        sonuclar = tarama_yap(hisseler, "BIST")
         
-        if len(sonuclar) > 0:
-            st.success(f"Radar {len(sonuclar)} adet sinyal yakaladı!")
-            
+        if sonuclar:
+            st.success(f"{len(sonuclar)} Balina Hareketi Tespit Edildi!")
             for veri in sonuclar:
-                # HTML Kart Tasarımı
-                html_kod = f"""
-                <div class="balina-karti">
+                st.markdown(f"""
+                <div class="balina-karti bist-card">
                     <div style="display:flex; justify-content:space-between; align-items:center;">
                         <div>
-                            <h2 style="margin:0; color:white;">{veri['Hisse']}</h2>
-                            <p style="margin:0; font-size:18px;">{veri['Fiyat']:.2f} TL <span style="color:{'#4ade80' if veri['Değişim']>0 else '#f87171'}">(%{veri['Değişim']:.2f})</span></p>
+                            <h2 style="margin:0; color:#e0f2fe;">{veri['Sembol']}</h2>
+                            <p style="margin:0; font-size:20px; color:white;">{veri['Fiyat']:.2f} TL 
+                                <span style="color:{'#4ade80' if veri['Degisim']>0 else '#f87171'}">
+                                (%{veri['Degisim']:.2f})
+                                </span>
+                            </p>
                         </div>
                         <div style="text-align:right;">
                             <div class="signal-box {veri['Renk']}">{veri['Sinyal']}</div>
-                            <p style="margin:5px 0 0 0; font-size:12px; color:#cbd5e1;">{veri['Sebep']}</p>
+                            <p style="margin:5px 0 0 0; color:#94a3b8;">Hacim: {veri['HacimKat']:.1f} Kat Arttı</p>
                         </div>
                     </div>
                 </div>
-                """
-                st.markdown(html_kod, unsafe_allow_html=True)
+                """, unsafe_allow_html=True)
         else:
-            st.info("Şu an deniz sakin. Herhangi bir balina hareketi (Hacim patlaması) görülmedi.")
+            st.info("BIST tarafı şu an sakin. Balinalar uyuyor.")
 
-# --- BİLGİ KUTUSU ---
-with st.sidebar:
-    st.header("Nasıl Çalışır?")
-    st.info("""
-    **1. Hacim Analizi:**
-    Son 20 saatin ortalamasına bakar. Eğer anlık hacim, ortalamanın 2 katına çıkarsa 'Balina' var demektir.
+# --- SEKME 2: KRİPTO ---
+with tab2:
+    st.header("Binance Balina Radarı")
+    st.caption("Bitcoin, Ethereum, Solana, PEPE ve popüler coinler taranıyor...")
     
-    **2. Whale Buy (Alım):**
-    Hacim yüksek + Fiyat Yükseliyorsa = Biri topluyor.
-    
-    **3. Whale Dump (Satış):**
-    Hacim yüksek + Fiyat Düşüyorsa = Biri mal boşaltıyor.
-    """)
-    st.warning("Not: Veriler 15dk gecikmeli olabilir.")
+    if st.button("Kripto Piyasasını Tara 📡", key="btn_kripto", type="primary"):
+        sonuclar = tarama_yap(kriptolar, "KRIPTO")
+        
+        if sonuclar:
+            st.success(f"{len(sonuclar)} Balina Hareketi Tespit Edildi!")
+            for veri in sonuclar:
+                st.markdown(f"""
+                <div class="balina-karti crypto-card">
+                    <div style="display:flex; justify-content:space-between; align-items:center;">
+                        <div>
