@@ -14,26 +14,31 @@ with st.sidebar:
 
 # --- HESAPLAMA MOTORU ---
 def teknik_analiz_yap(df):
-    # Veriler
-    son_fiyat = df['Close'].iloc[-1]
+    # Veriler (Float'a çevirerek garantiye alıyoruz)
+    son_fiyat = float(df['Close'].iloc[-1])
     
     # 1. Hareketli Ortalamalar (SMA)
-    df['SMA20'] = df['Close'].rolling(window=20).mean()
-    df['SMA50'] = df['Close'].rolling(window=50).mean()
-    sma20 = df['SMA20'].iloc[-1]
-    sma50 = df['SMA50'].iloc[-1]
+    sma20_seri = df['Close'].rolling(window=20).mean()
+    sma50_seri = df['Close'].rolling(window=50).mean()
+    
+    # Sadece son günün değerini alıyoruz
+    sma20 = float(sma20_seri.iloc[-1])
+    sma50 = float(sma50_seri.iloc[-1])
 
     # 2. Bollinger Bantları
-    std = df['Close'].rolling(window=20).std()
+    std_seri = df['Close'].rolling(window=20).std()
+    std = float(std_seri.iloc[-1]) # Son standart sapma
+    
     ust_bant = sma20 + (2 * std)
     alt_bant = sma20 - (2 * std)
     
-    # 3. RSI Hesaplama (Manuel - Kütüphanesiz)
+    # 3. RSI Hesaplama
     delta = df['Close'].diff()
     gain = (delta.where(delta > 0, 0)).rolling(window=14).mean()
     loss = (-delta.where(delta < 0, 0)).rolling(window=14).mean()
     rs = gain / loss
-    rsi = 100 - (100 / (1 + rs)).iloc[-1]
+    rsi_seri = 100 - (100 / (1 + rs))
+    rsi = float(rsi_seri.iloc[-1]) # Son RSI değeri
 
     return son_fiyat, rsi, alt_bant, ust_bant, sma50
 
@@ -46,28 +51,28 @@ def karar_ver(fiyat, rsi, alt_bant, ust_bant, sma50):
     # Kural 1: RSI Stratejisi
     if rsi < 35:
         puan += 2
-        yorumlar.append("✅ RSI aşırı satım bölgesinde (Ucuz). Tepki yükselişi gelebilir.")
+        yorumlar.append("✅ RSI aşırı satım bölgesinde (Ucuz).")
     elif rsi > 65:
         puan -= 2
-        yorumlar.append("⚠️ RSI aşırı alım bölgesinde (Pahalı). Düzeltme gelebilir.")
+        yorumlar.append("⚠️ RSI aşırı alım bölgesinde (Pahalı).")
     else:
-        yorumlar.append("ℹ️ RSI nötr bölgede (Yatay seyir).")
+        yorumlar.append("ℹ️ RSI nötr bölgede.")
 
     # Kural 2: Bollinger Stratejisi
-    if fiyat < alt_bant * 1.02: # Alt banda %2 yakınsa
+    if fiyat < alt_bant * 1.02: 
         puan += 1
-        yorumlar.append("✅ Fiyat Bollinger alt bandına (Desteğe) çok yakın.")
+        yorumlar.append("✅ Fiyat destek seviyesine yakın.")
     elif fiyat > ust_bant * 0.98:
         puan -= 1
-        yorumlar.append("⚠️ Fiyat Bollinger üst bandına (Dirence) dayandı.")
+        yorumlar.append("⚠️ Fiyat direnç seviyesine yakın.")
 
     # Kural 3: Trend (SMA 50)
     if fiyat > sma50:
         puan += 1
-        yorumlar.append("✅ Fiyat 50 günlük ortalamanın üzerinde (Trend Pozitif).")
+        yorumlar.append("✅ Trend Pozitif (50 günlüğün üzerinde).")
     else:
         puan -= 1
-        yorumlar.append("🔻 Fiyat 50 günlük ortalamanın altında (Trend Negatif).")
+        yorumlar.append("🔻 Trend Negatif (50 günlüğün altında).")
 
     # --- SONUÇ ---
     karar = "NÖTR / BEKLE"
@@ -98,7 +103,7 @@ else:
 period = st.selectbox("Zaman Dilimi", ["3mo", "6mo", "1y"], index=1)
 
 if st.button("Analiz Et (Ücretsiz)", type="primary"):
-    with st.spinner('Algoritmalar çalışıyor...'):
+    with st.spinner('Hesaplanıyor...'):
         try:
             df = yf.download(symbol, period=period)
             
@@ -118,7 +123,7 @@ if st.button("Analiz Et (Ücretsiz)", type="primary"):
                 c1, c2, c3 = st.columns(3)
                 c1.metric("Fiyat", f"{fiyat:.2f} TL")
                 c2.metric("RSI", f"{rsi:.1f}")
-                c3.metric("Ortalama (50G)", f"{sma50:.2f} TL")
+                c3.metric("Puan", f"{len(yorumlar)}")
 
                 st.divider()
 
@@ -133,7 +138,7 @@ if st.button("Analiz Et (Ücretsiz)", type="primary"):
                     st.warning(f"### {karar}")
 
                 st.write("---")
-                st.write("**Strateji Notları:**")
+                st.write("**Neden Böyle Düşünüyor?**")
                 for yorum in yorumlar:
                     st.write(yorum)
             else:
