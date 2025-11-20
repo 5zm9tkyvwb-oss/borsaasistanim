@@ -5,8 +5,7 @@ import pandas_ta as ta
 from openai import OpenAI
 
 # Sayfa Ayarı
-st.set_page_config(page_title="Borsa Asistanım", layout="mobile")
-st.title("🤖 AI Borsa Asistanı")
+st.set_page_config(page_title="Borsa Asistanım", layout="centered")st.title("🤖 AI Borsa Asistanı")
 
 # Ayarlar Menüsü
 with st.sidebar:
