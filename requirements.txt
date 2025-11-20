@@ -1,5 +1,246 @@
-streamlit
-yfinance
-pandas
-pandas_ta
-openai
+import streamlit as st
+import random
+import time
+import requests
+from streamlit_lottie import st_lottie
+
+# --- SAYFA AYARLARI ---
+st.set_page_config(page_title="Fatoş Hoca ile Bilim Yolculuğu", page_icon="🚀", layout="centered")
+
+# --- LOTTIE ANIMASYON YÜKLEYİCİ ---
+# İnternetten hareketli görseller çeker
+@st.cache_data
+def load_lottieurl(url: str):
+    r = requests.get(url)
+    if r.status_code != 200:
+        return None
+    return r.json()
+
+# Animasyon Linkleri (Bilim, Başarı, Hata)
+lottie_bilim = load_lottieurl("https://assets5.lottiefiles.com/packages/lf20_w51pcehl.json")
+lottie_dogru = load_lottieurl("https://assets10.lottiefiles.com/packages/lf20_l4xxt7fk.json") # Konfeti
+lottie_yanlis = load_lottieurl("https://assets9.lottiefiles.com/packages/lf20_qp1q7mct.json") # Üzgün robot
+
+# --- EĞLENCELİ CSS TASARIMI ---
+st.markdown("""
+    <style>
+    /* Google Font İçe Aktar (Çocuksu Font) */
+    @import url('https://fonts.googleapis.com/css2?family=Comic+Neue:wght@700&display=swap');
+
+    /* Genel Sayfa Yapısı */
+    .stApp {
+        background: linear-gradient(to bottom right, #0f0c29, #302b63, #24243e); /* Uzay Teması */
+        font-family: 'Comic Neue', cursive;
+        color: white !important;
+    }
+    
+    h1, h2, h3 {
+        font-family: 'Comic Neue', cursive;
+        color: #FFD700 !important; /* Altın Sarısı Başlıklar */
+        text-shadow: 2px 2px 4px #000000;
+        text-align: center;
+    }
+
+    /* Buton Tasarımı - Oyun Düğmesi Gibi */
+    .stButton>button {
+        width: 100%;
+        border-radius: 20px;
+        height: 70px;
+        background: linear-gradient(to bottom, #4facfe 0%, #00f2fe 100%); /* Parlak Mavi */
+        color: white;
+        font-weight: bold;
+        font-size: 20px;
+        border: 3px solid white;
+        box-shadow: 0 5px #005cbf;
+        transition: all 0.1s;
+    }
+    /* Butona Tıklama Efekti */
+    .stButton>button:active {
+        box-shadow: 0 2px #005cbf;
+        transform: translateY(3px);
+    }
+    /* Buton Üzerine Gelme Efekti */
+    .stButton>button:hover {
+         background: linear-gradient(to bottom, #ff9a44 0%, #fc6076 100%); /* Turuncu/Pembe */
+    }
+
+    /* Bilgi Kutuları */
+    .bilgi-kutusu {
+        background: rgba(255, 255, 255, 0.1); /* Yarı saydam */
+        backdrop-filter: blur(10px);
+        padding: 15px;
+        border-radius: 15px;
+        border: 2px solid #FFD700;
+        text-align: center;
+        font-size: 18px;
+        margin-bottom: 10px;
+    }
+    
+    /* Yanlış Cevap Titreme Efekti için Sınıf */
+    .shake {
+        animation: shake 0.5s;
+        animation-iteration-count: 1;
+    }
+    @keyframes shake {
+        0% { transform: translate(1px, 1px) rotate(0deg); }
+        10% { transform: translate(-1px, -2px) rotate(-1deg); }
+        20% { transform: translate(-3px, 0px) rotate(1deg); }
+        30% { transform: translate(3px, 2px) rotate(0deg); }
+        40% { transform: translate(1px, -1px) rotate(1deg); }
+        50% { transform: translate(-1px, 2px) rotate(-1deg); }
+        60% { transform: translate(-3px, 1px) rotate(0deg); }
+        70% { transform: translate(3px, 1px) rotate(-1deg); }
+        80% { transform: translate(-1px, -1px) rotate(1deg); }
+        90% { transform: translate(1px, 2px) rotate(0deg); }
+        100% { transform: translate(1px, -2px) rotate(-1deg); }
+    }
+    </style>
+""", unsafe_allow_html=True)
+
+# --- SORU HAVUZU ---
+sorular = [
+    {"soru": "Güneş sistemindeki EN BÜYÜK gezegen hangisidir? 🪐", "secenekler": ["Mars (Kızıl Gezegen)", "Jüpiter (Dev Gaz)", "Satürn (Halkalı)", "Dünya (Evimiz)"], "cevap": "Jüpiter (Dev Gaz)"},
+    {"soru": "Hücrenin enerji santrali neresidir? ⚡", "secenekler": ["Ribozom", "Çekirdek (Patron)", "Mitokondri (Enerji)", "Koful (Depo)"], "cevap": "Mitokondri (Enerji)"},
+    {"soru": "Kuvvetin birimi nedir? 💪", "secenekler": ["Newton (N)", "Pascal (Pa)", "Joule (J)", "Watt (W)"], "cevap": "Newton (N)"},
+    {"soru": "Maddenin tanecikleri en çok hangisinde dans eder (hareketlidir)? 💃", "secenekler": ["Katı (Buz gibi)", "Sıvı (Su gibi)", "Gaz (Buhar gibi)", "Plazma"], "cevap": "Gaz (Buhar gibi)"},
+    {"soru": "Hangisi doğa dostu, yenilenebilir enerjidir? 🌿", "secenekler": ["Kömür (Kara duman)", "Doğalgaz", "Rüzgar (Pervane)", "Petrol"], "cevap": "Rüzgar (Pervane)"},
+    {"soru": "Işık en hızlı nerede koşar? 🏃‍♂️💨", "secenekler": ["Camda", "Suda", "Uzay Boşluğunda", "Havada"], "cevap": "Uzay Boşluğunda"},
+    {"soru": "Limon gibi asitlerin tadı nasıldır? 🍋", "secenekler": ["Ekşi (Yüz buruşturan)", "Acı (Biber gibi)", "Tatlı (Şeker gibi)", "Tuzlu"], "cevap": "Ekşi (Yüz buruşturan)"},
+    {"soru": "Dünya'mızın gece lambası olan doğal uydusu nedir? 🌕", "secenekler": ["Güneş", "Ay", "Titan", "Mars"], "cevap": "Ay"},
+    {"soru": "Aşağıdakilerden hangisi bir elementtir (Saf maddedir)? 💎", "secenekler": ["Su (H2O)", "Hava (Karışım)", "Demir (Fe)", "Tuz (NaCl)"], "cevap": "Demir (Fe)"},
+    {"soru": "DNA (Genetik kodumuz) hücrenin neresinde saklanır? 🧬", "secenekler": ["Hücre Zarı", "Sitoplazma", "Çekirdek (Kasa)", "Koful"], "cevap": "Çekirdek (Kasa)"},
+]
+
+# --- OYUN MOTORU ---
+
+# Hafızayı Başlat
+if 'soru_index' not in st.session_state:
+    st.session_state.soru_index = 0
+    st.session_state.bakiye = 0
+    st.session_state.joker_kullanildi = False
+    st.session_state.oyun_bitti = False
+    st.session_state.son_cevap_durumu = None # "dogru" veya "yanlis" olacak
+    random.shuffle(sorular)
+    st.session_state.sorular = sorular
+
+# --- YAN MENÜ: FATOŞ HOCA ---
+with st.sidebar:
+    st_lottie(lottie_bilim, height=150, key="sidebar_anim")
+    st.markdown("### 👩‍🏫 Fatoş Hoca Diyor ki:")
+    
+    if st.session_state.bakiye > 3000:
+        st.success("Harika gidiyorsun, tam bir bilim insanısın! 🌟")
+    elif st.session_state.bakiye < 0:
+        st.warning("Biraz daha dikkatli ol, başarabilirsin! 💪")
+    else:
+        st.info("Yarışmaya hoş geldin! Soruları dikkatli oku. 👀")
+        
+    st.write("---")
+    st.metric("💰 KASA DURUMU", f"{st.session_state.bakiye} TL")
+
+# --- ANA EKRAN ---
+
+# Başlık ve Animasyon
+col_title1, col_title2 = st.columns([3, 1])
+with col_title1:
+    st.title("🚀 FATOŞ HOCA İLE BİLİM YARIŞI")
+with col_title2:
+    st_lottie(lottie_bilim, height=100, key="main_anim")
+
+st.write("") # Boşluk
+
+# Oyun Bitti mi?
+if st.session_state.soru_index >= len(st.session_state.sorular):
+    st.session_state.oyun_bitti = True
+
+if st.session_state.oyun_bitti:
+    st.balloons() # Balonlar uçsun!
+    st_lottie(lottie_dogru, height=200, key="finish_anim") # Konfeti animasyonu
+    
+    st.markdown("<h1 style='color: #4facfe;'>🎉 OYUN BİTTİ! 🎉</h1>", unsafe_allow_html=True)
+    st.markdown(f"<div class='bilgi-kutusu' style='font-size: 30px;'>TOPLAM ÖDÜLÜN: {st.session_state.bakiye} TL 💰</div>", unsafe_allow_html=True)
+    
+    if st.session_state.bakiye > 5000:
+         st.success("🏆 MÜKEMMEL BİR SONUÇ! Sen bir dahisin!")
+    elif st.session_state.bakiye > 0:
+         st.info("👏 Güzel yarıştı, tebrikler!")
+    else:
+         st.error("Pek gününde değildin ama tekrar deneyebilirsin! 😊")
+
+    st.write("")
+    if st.button("🔄 YENİDEN BAŞLA"):
+        st.session_state.soru_index = 0
+        st.session_state.bakiye = 0
+        st.session_state.joker_kullanildi = False
+        st.session_state.oyun_bitti = False
+        st.session_state.son_cevap_durumu = None
+        random.shuffle(sorular)
+        st.session_state.sorular = sorular
+        st.rerun()
+
+else:
+    # Mevcut Soru Verileri
+    suanki_soru = st.session_state.sorular[st.session_state.soru_index]
+    toplam_soru = len(sorular)
+    mevcut_soru_no = st.session_state.soru_index + 1
+    
+    # İlerleme Çubuğu (Progress Bar)
+    ilerleme = st.progress(0)
+    ilerleme.progress(mevcut_soru_no / toplam_soru)
+
+    # Bilgi Paneli (Soru No ve Joker)
+    col_info1, col_info2 = st.columns([2, 1])
+    with col_info1:
+         st.markdown(f"### ❓ SORU {mevcut_soru_no} / {toplam_soru}")
+    with col_info2:
+        if st.session_state.joker_kullanildi:
+            st.warning("🚫 Joker Kullanıldı")
+        else:
+            if st.button("🃏 %100 JOKER"):
+                st.session_state.joker_kullanildi = True
+                # Cevabı süslü bir şekilde göster
+                st.info(f"💡 Fatoş Hoca Fısıldıyor: Cevap **'{suanki_soru['cevap']}'**")
+                st_lottie(lottie_bilim, height=50, key="joker_anim")
+
+    # --- SORU ALANI (Büyük ve Net) ---
+    st.markdown(f"""
+    <div style='background-color: #24243e; padding: 20px; border-radius: 15px; border: 3px solid #4facfe; text-align: center; margin: 20px 0;'>
+        <h2 style='color: white !important; margin:0;'>{suanki_soru['soru']}</h2>
+    </div>
+    """, unsafe_allow_html=True)
+
+    # --- ŞIKLAR (2x2 Düzen) ---
+    secenekler = suanki_soru['secenekler']
+    
+    c1, c2 = st.columns(2)
+    
+    def cevap_ver(secilen_sik):
+        if secilen_sik == suanki_soru['cevap']:
+            st.session_state.bakiye += 1000
+            st.balloons() # Doğruysa balonlar
+            st.success("✅ DOĞRU CEVAP! Harikasın! (+1000 TL)")
+            time.sleep(1.5)
+        else:
+            st.session_state.bakiye -= 500
+            # Yanlış cevapta ekranı titreten özel HTML/CSS bloğu
+            st.markdown("""<div class='shake' style='background-color: #ff4d4d; padding: 15px; border-radius: 10px; text-align: center;'>
+                <h3 style='color: white !important;'>❌ AYYY YANLIŞ OLDU! (-500 TL)</h3>
+            </div>""", unsafe_allow_html=True)
+            st.error(f"Doğrusu: {suanki_soru['cevap']} olacaktı.")
+            time.sleep(2.5) # Yanlışı okuması için biraz daha uzun bekle
+        
+        # Sonraki soruya geç
+        st.session_state.soru_index += 1
+        st.rerun()
+
+    with c1:
+        st.write("") # Butonlar arası boşluk için
+        if st.button(f"A) {secenekler[0]}"): cevap_ver(secenekler[0])
+        st.write("")
+        if st.button(f"C) {secenekler[2]}"): cevap_ver(secenekler[2])
+        
+    with c2:
+        st.write("")
+        if st.button(f"B) {secenekler[1]}"): cevap_ver(secenekler[1])
+        st.write("")
+        if st.button(f"D) {secenekler[3]}"): cevap_ver(secenekler[3])
