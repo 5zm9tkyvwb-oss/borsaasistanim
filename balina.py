@@ -1,12 +1,12 @@
 import streamlit as st
 import yfinance as yf
 import pandas as pd
-import time # Nefes almak için kütüphane
+import time
 
 # --- SAYFA AYARLARI ---
 st.set_page_config(page_title="Global Balina Avcısı", layout="wide", page_icon="🐳")
 
-# --- CSS ---
+# --- CSS TASARIMI ---
 st.markdown("""
     <style>
     .stApp { background-color: #0a0e17; color: white; }
@@ -20,47 +20,53 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-st.title("🐳 ULTRA BALİNA AVCISI (GENİŞLETİLMİŞ)")
-st.caption("HDFGS • BIST 100+ • KRİPTO")
+st.title("🐳 ULTRA BALİNA AVCISI PRO")
+st.caption("HDFGS • BIST 100 • KRİPTO SEKTÖRLERİ")
 
-# --- DEV HİSSE LİSTESİ (120+ ADET) ---
-# 600 hisse sistemi kitler, bu liste hacmin %90'ıdır.
-hisseler = [
-    "HDFGS.IS", # <--- 1 NUMARA
-    # BIST 30
-    "THYAO.IS", "ASELS.IS", "GARAN.IS", "SISE.IS", "EREGL.IS", "KCHOL.IS", "AKBNK.IS", 
-    "TUPRS.IS", "SASA.IS", "HEKTS.IS", "PETKM.IS", "BIMAS.IS", "EKGYO.IS", "ODAS.IS", 
-    "KONTR.IS", "GUBRF.IS", "FROTO.IS", "TTKOM.IS", "ISCTR.IS", "YKBNK.IS", "SAHOL.IS", 
-    "TCELL.IS", "ENKAI.IS", "VESTL.IS", "ARCLK.IS", "TOASO.IS", "PGSUS.IS", "KOZAL.IS", 
-    "KOZAA.IS", "IPEKE.IS", "TKFEN.IS", "HALKB.IS", "VAKBN.IS", "TSKB.IS", "ALARK.IS", 
-    "TAVHL.IS", 
-    # POPÜLER BIST 100 & YILDIZ PAZAR
-    "MGROS.IS", "SOKM.IS", "MAVI.IS", "AEFES.IS", "AGHOL.IS", "AKSEN.IS", "ASTOR.IS", 
-    "EUPWR.IS", "GESAN.IS", "SMRTG.IS", "ALFAS.IS", "CANTE.IS", "REEDR.IS", "CVKMD.IS", 
-    "KCAER.IS", "OYAKC.IS", "EGEEN.IS", "DOAS.IS", "BRSAN.IS", "CIMSA.IS", "DOHOL.IS", 
-    "ECILC.IS", "ENJSA.IS", "GLYHO.IS", "GWIND.IS", "ISGYO.IS", "ISMEN.IS", "KLSER.IS", 
-    "KORDS.IS", "KZBGY.IS", "OTKAR.IS", "QUAGR.IS", "SKBNK.IS", "SOKE.IS", "TRGYO.IS", 
-    "TSPOR.IS", "ULKER.IS", "VESBE.IS", "YYLGD.IS", "ZOREN.IS", "AKFGY.IS", "ALBRK.IS",
-    "ASGYO.IS", "AYDEM.IS", "BAGFS.IS", "BERA.IS", "BIOEN.IS", "BOBET.IS", "BRYAT.IS",
-    "CCOLA.IS", "CEMTS.IS", "CWENE.IS", "ECZYT.IS", "GENIL.IS", "GSDHO.IS", "HALKS.IS",
-    "HUNER.IS", "IHLAS.IS", "IMASM.IS", "IZMDC.IS", "KARSN.IS", "KMPUR.IS", "KONYA.IS",
-    "KOPOL.IS", "MAGEN.IS", "MTRKS.IS", "NTHOL.IS", "PENTA.IS", "PSGYO.IS", "SDTTR.IS",
-    "SELEC.IS", "SNGYO.IS", "TATGD.IS", "TUKAS.IS", "TURSG.IS", "VERUS.IS", "YEOTK.IS"
+# --- VERİ HAVUZLARI ---
+
+# BIST LİSTESİ
+bist_listesi = [
+    "HDFGS.IS", "THYAO.IS", "ASELS.IS", "GARAN.IS", "SISE.IS", "EREGL.IS", "KCHOL.IS", 
+    "AKBNK.IS", "TUPRS.IS", "SASA.IS", "HEKTS.IS", "PETKM.IS", "BIMAS.IS", "EKGYO.IS", 
+    "ODAS.IS", "KONTR.IS", "GUBRF.IS", "FROTO.IS", "TTKOM.IS", "ISCTR.IS", "YKBNK.IS",
+    "SAHOL.IS", "TCELL.IS", "ENKAI.IS", "VESTL.IS", "ARCLK.IS", "TOASO.IS", "PGSUS.IS",
+    "KOZAL.IS", "KOZAA.IS", "IPEKE.IS", "TKFEN.IS", "HALKB.IS", "VAKBN.IS", "TSKB.IS",
+    "ALARK.IS", "TAVHL.IS", "MGROS.IS", "SOKM.IS", "MAVI.IS", "AEFES.IS", "AGHOL.IS",
+    "AKSEN.IS", "ASTOR.IS", "EUPWR.IS", "GESAN.IS", "SMRTG.IS", "ALFAS.IS", "CANTE.IS",
+    "REEDR.IS", "CVKMD.IS", "KCAER.IS", "OYAKC.IS", "EGEEN.IS", "DOAS.IS"
 ]
 
-kriptolar = [
-    "BTC-USD", "ETH-USD", "BNB-USD", "SOL-USD", "XRP-USD", "DOGE-USD", "ADA-USD", 
-    "AVAX-USD", "SHIB-USD", "DOT-USD", "MATIC-USD", "LTC-USD", "TRX-USD", "LINK-USD", 
-    "ATOM-USD", "FET-USD", "RNDR-USD", "PEPE-USD", "FLOKI-USD", "NEAR-USD", "ARB-USD", 
-    "APT-USD", "SUI-USD", "INJ-USD", "OP-USD", "LDO-USD", "FIL-USD", "HBAR-USD", 
-    "VET-USD", "ICP-USD", "GRT-USD", "MKR-USD", "AAVE-USD", "SNX-USD", "ALGO-USD", 
-    "SAND-USD", "MANA-USD", "WIF-USD", "BONK-USD", "BOME-USD"
-]
+# KRİPTO KATEGORİLERİ
+crypto_sectors = {
+    "🏆 Top 30 (Major)": [
+        "BTC-USD", "ETH-USD", "BNB-USD", "SOL-USD", "XRP-USD", "ADA-USD", "AVAX-USD", 
+        "DOGE-USD", "DOT-USD", "TRX-USD", "LINK-USD", "MATIC-USD", "LTC-USD", "BCH-USD",
+        "UNI-USD", "ATOM-USD", "XLM-USD", "ETC-USD", "FIL-USD", "HBAR-USD", "APT-USD",
+        "NEAR-USD", "VET-USD", "ICP-USD", "ARB-USD", "OP-USD", "INJ-USD", "RNDR-USD"
+    ],
+    "🐸 Meme Coinler": [
+        "DOGE-USD", "SHIB-USD", "PEPE-USD", "FLOKI-USD", "BONK-USD", "WIF-USD", 
+        "BOME-USD", "MEME-USD", "DOGE2-USD", "BabyDoge-USD"
+    ],
+    "🤖 Yapay Zeka (AI)": [
+        "FET-USD", "RNDR-USD", "AGIX-USD", "OCEAN-USD", "GRT-USD", "WLD-USD", 
+        "NEAR-USD", "INJ-USD", "ROSE-USD", "AKT-USD"
+    ],
+    "🎮 Metaverse & Game": [
+        "SAND-USD", "MANA-USD", "AXS-USD", "GALA-USD", "ENJ-USD", "APE-USD", 
+        "IMX-USD", "FLOW-USD", "CHZ-USD", "GMT-USD"
+    ],
+    "🏦 DeFi & Layer 2": [
+        "UNI-USD", "AAVE-USD", "MKR-USD", "SNX-USD", "CRV-USD", "LDO-USD", 
+        "COMP-USD", "1INCH-USD", "DYDX-USD", "SUSHI-USD", "CAKE-USD"
+    ]
+}
 
 # --- TARAMA FONKSİYONU ---
 def tarama_yap(liste, piyasa_tipi):
     sinyaller = []
-    text = "BIST Piyasası Taranıyor (Ort. 60-90 sn)..." if piyasa_tipi == "BIST" else "Kripto Taranıyor..."
+    text = "BIST Piyasası Taranıyor..." if piyasa_tipi == "BIST" else "Seçilen Kripto Sektörü Taranıyor..."
     my_bar = st.progress(0, text=text)
     
     adim = 1.0 / len(liste)
@@ -68,9 +74,7 @@ def tarama_yap(liste, piyasa_tipi):
 
     for symbol in liste:
         try:
-            # Yahoo'yu kızdırmamak için minik bekleme (Anti-Ban)
-            time.sleep(0.1) 
-            
+            time.sleep(0.05) # Hızlandırdım ama güvenli sınırda
             period = "5d" if piyasa_tipi == "BIST" else "2d"
             df = yf.download(symbol, period=period, interval="1h", progress=False)
             
@@ -78,6 +82,7 @@ def tarama_yap(liste, piyasa_tipi):
             
             if len(df) > 20:
                 son = df.iloc[-1]
+                
                 hacim_son = son['Volume']
                 hacim_ort = df['Volume'].rolling(24).mean().iloc[-1]
                 kat = hacim_son / hacim_ort if hacim_ort > 0 else 0
@@ -88,14 +93,14 @@ def tarama_yap(liste, piyasa_tipi):
                 durum = None
                 renk = "gray"
                 
-                # HDFGS Özel Kuralı
+                # HDFGS Kuralı
                 if "HDFGS" in symbol:
                     if kat > 1.5:
                         durum = "HDFGS HAREKETLİ 🦅"
                         renk = "buy" if degisim > 0 else "sell"
                 
-                # Diğerleri için filtre
-                elif kat > 2.3: # Hacim 2.3 kat artmalı
+                # Genel Kural
+                elif kat > 2.2:
                     if degisim > 0.5:
                         durum = "WHALE BUY 🚀"
                         renk = "buy"
@@ -113,18 +118,21 @@ def tarama_yap(liste, piyasa_tipi):
             pass
         
         suan += adim
-        my_bar.progress(min(suan, 1.0), text=f"{symbol} kontrol ediliyor...")
+        my_bar.progress(min(suan, 1.0), text=f"{symbol} taranıyor...")
     
     my_bar.empty()
     return sinyaller
 
 # --- ARAYÜZ ---
-tab1, tab2 = st.tabs(["🏙️ BORSA (120+ HİSSE)", "₿ KRİPTO"])
+tab1, tab2 = st.tabs(["🏙️ BORSA İSTANBUL", "₿ KRİPTO (SEKTÖREL)"])
 
+# --- SEKME 1: BORSA ---
 with tab1:
-    st.header(f"Borsa İstanbul Geniş Tarama")
-    if st.button("GENİŞ TARAMAYI BAŞLAT 📡", key="btn_bist", type="primary"):
-        sonuclar = tarama_yap(hisseler, "BIST")
+    st.header("BIST 100 Balina Radarı")
+    st.caption(f"Listedeki {len(bist_listesi)} hisse taranıyor.")
+    
+    if st.button("BIST'i BAŞLAT 📡", key="btn_bist", type="primary"):
+        sonuclar = tarama_yap(bist_listesi, "BIST")
         if sonuclar:
             st.success(f"{len(sonuclar)} Balina Yakalandı!")
             cols = st.columns(2)
@@ -145,14 +153,24 @@ with tab1:
                         </div>
                     </div>""", unsafe_allow_html=True)
         else:
-            st.info("Tarama bitti. Şu an olağandışı bir hacim yok.")
+            st.info("BIST sakin.")
 
+# --- SEKME 2: KRİPTO ---
 with tab2:
-    st.header(f"Kripto Tarama")
+    st.header("Kripto Sektör Tarayıcısı")
+    
+    # Kategori Seçimi
+    secilen_sektor = st.selectbox("Hangi Sektörü Tarayalım?", list(crypto_sectors.keys()))
+    
+    # Seçilen listeyi al
+    tarama_listesi = crypto_sectors[secilen_sektor]
+    
+    st.caption(f"Seçilen sektördeki {len(tarama_listesi)} coin taranacak.")
+    
     if st.button("KRİPTOYU TARA 📡", key="btn_kripto", type="primary"):
-        sonuclar = tarama_yap(kriptolar, "KRIPTO")
+        sonuclar = tarama_yap(tarama_listesi, "KRIPTO")
         if sonuclar:
-            st.success(f"{len(sonuclar)} Kripto Balinası Yakalandı!")
+            st.success(f"{len(sonuclar)} Balina Yakalandı!")
             cols = st.columns(2)
             for i, veri in enumerate(sonuclar):
                 with cols[i % 2]:
@@ -170,4 +188,4 @@ with tab2:
                         </div>
                     </div>""", unsafe_allow_html=True)
         else:
-            st.info("Kripto sakin.")
+            st.info("Bu sektörde şu an balina hareketi yok.")
