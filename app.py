@@ -2,82 +2,68 @@ import streamlit as st
 import yfinance as yf
 import pandas as pd
 
-# --- SAYFA AYARLARI ---
-st.set_page_config(page_title="Borsa Strateji", layout="centered")
+# 1. SAYFA BAŞLIĞI
+st.set_page_config(page_title="Borsa Analiz", layout="centered")
 st.title("📉 Destek & Direnç Analizi")
-st.caption("Otomatik Seviye Tespit Sistemi")
+st.caption("Basit, Hızlı ve Net Analiz")
 
-# --- YAN MENÜ ---
+# 2. YAN MENÜ
 with st.sidebar:
-    st.header("Ayarlar")
-    st.info("Bu modül ücretsizdir. Destek ve Direnç noktalarını matematiksel olarak hesaplar.")
+    st.header("Bilgi")
+    st.info("Bu uygulama ücretsizdir.")
 
-# --- HESAPLAMA MOTORU ---
-def teknik_analiz_yap(df):
-    # Veriler (Float'a çevirerek garantiye alıyoruz)
-    son_fiyat = float(df['Close'].iloc[-1])
-    
-    # 1. Hareketli Ortalamalar (SMA)
-    sma20_seri = df['Close'].rolling(window=20).mean()
-    sma50_seri = df['Close'].rolling(window=50).mean()
-    
-    sma20 = float(sma20_seri.iloc[-1])
-    sma50 = float(sma50_seri.iloc[-1])
+# 3. GİRİŞ KISMI (Burada kutucuklar kesin görünür)
+symbol_input = st.text_input("Hisse Kodu", "THYAO").upper()
 
-    # 2. Bollinger Bantları (Destek ve Direnç için)
-    std_seri = df['Close'].rolling(window=20).std()
-    std = float(std_seri.iloc[-1])
-    
-    ust_bant = sma20 + (2 * std) # DİRENÇ
-    alt_bant = sma20 - (2 * std) # DESTEK
-    
-    # 3. RSI Hesaplama
-    delta = df['Close'].diff()
-    gain = (delta.where(delta > 0, 0)).rolling(window=14).mean()
-    loss = (-delta.where(delta < 0, 0)).rolling(window=14).mean()
-    rs = gain / loss
-    rsi_seri = 100 - (100 / (1 + rs))
-    rsi = float(rsi_seri.iloc[-1])
+# Kod düzeltme (.IS ekleme)
+if ".IS" not in symbol_input and "USD" not in symbol_input:
+    symbol = f"{symbol_input}.IS"
+else:
+    symbol = symbol_input
 
-    return son_fiyat, rsi, alt_bant, ust_bant, sma50
+period = st.selectbox("Süre", ["3mo", "6mo", "1y"], index=1)
 
-def karar_ver(fiyat, rsi, alt_bant, ust_bant, sma50):
-    puan = 0
-    yorumlar = []
-
-    # Kural 1: RSI
-    if rsi < 35:
-        puan += 2
-        yorumlar.append("✅ RSI 'Ucuz' bölgede (35 altı).")
-    elif rsi > 65:
-        puan -= 2
-        yorumlar.append("⚠️ RSI 'Pahalı' bölgede (65 üstü).")
-
-    # Kural 2: Destek/Direnç Yakınlığı
-    if fiyat <= alt_bant * 1.02: 
-        puan += 1
-        yorumlar.append("✅ Fiyat DESTEK seviyesine çok yakın (Tepki verebilir).")
-    elif fiyat >= ust_bant * 0.98:
-        puan -= 1
-        yorumlar.append("⚠️ Fiyat DİRENÇ seviyesine dayandı (Satış yiyebilir).")
-
-    # Kural 3: Trend
-    if fiyat > sma50:
-        puan += 1
-        yorumlar.append("✅ Yükseliş Trendi (Fiyat ortalamanın üzerinde).")
-    else:
-        puan -= 1
-        yorumlar.append("🔻 Düşüş Trendi (Fiyat ortalamanın altında).")
-
-    # Karar Mekanizması
-    karar = "NÖTR / İZLE"
-    renk = "gray"
-    
-    if puan >= 3:
-        karar = "GÜÇLÜ AL 🚀"
-        renk = "green"
-    elif puan >= 1:
-        karar = "ALIM ADAYI 🌱"
-        renk = "green"
-    elif puan <= -3:
-        karar = "GÜÇLÜ SAT 🚨"
+# 4. BUTON VE HESAPLAMA
+if st.button("Analiz Et", type="primary"):
+    with st.spinner('Veriler çekiliyor...'):
+        try:
+            # Veriyi indir
+            df = yf.download(symbol, period=period)
+            
+            # Tablo başlıklarını düzelt
+            if isinstance(df.columns, pd.MultiIndex):
+                df.columns = df.columns.get_level_values(0)
+            
+            if not df.empty:
+                # --- HESAPLAMALAR (Tek tek yapıyoruz) ---
+                son_fiyat = float(df['Close'].iloc[-1])
+                
+                # Bollinger (Destek/Direnç)
+                sma20 = df['Close'].rolling(20).mean().iloc[-1]
+                std = df['Close'].rolling(20).std().iloc[-1]
+                
+                ust_direnc = sma20 + (2 * std)
+                alt_destek = sma20 - (2 * std)
+                
+                # Trend (50 Günlük Ort)
+                sma50 = float(df['Close'].rolling(50).mean().iloc[-1])
+                
+                # RSI
+                delta = df['Close'].diff()
+                gain = (delta.where(delta > 0, 0)).rolling(14).mean()
+                loss = (-delta.where(delta < 0, 0)).rolling(14).mean()
+                rs = gain / loss
+                rsi_ham = 100 - (100 / (1 + rs))
+                rsi = float(rsi_ham.iloc[-1])
+                
+                # --- EKRANA YAZDIRMA ---
+                
+                # 1. Grafik
+                st.line_chart(df['Close'])
+                
+                # 2. Kritik Rakamlar
+                st.subheader(f"{symbol_input} Kritik Seviyeler")
+                c1, c2, c3 = st.columns(3)
+                c1.metric("FİYAT", f"{son_fiyat:.2f} TL")
+                c2.metric("DESTEK (Alım)", f"{alt_destek:.2f} TL", delta_color="normal")
+                c3.metric("DİRENÇ (Satım)", f"{ust
