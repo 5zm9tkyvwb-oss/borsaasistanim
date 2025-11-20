@@ -174,3 +174,29 @@ with tab2:
                 <div class="balina-karti crypto-card">
                     <div style="display:flex; justify-content:space-between; align-items:center;">
                         <div>
+                            <h2 style="margin:0; color:#fef08a;">{veri['Sembol']}</h2>
+                            <p style="margin:0; font-size:20px; color:white;">${veri['Fiyat']:.4f} 
+                                <span style="color:{'#4ade80' if veri['Degisim']>0 else '#f87171'}">
+                                (%{veri['Degisim']:.2f})
+                                </span>
+                            </p>
+                        </div>
+                        <div style="text-align:right;">
+                            <div class="signal-box {veri['Renk']}">{veri['Sinyal']}</div>
+                            <p style="margin:5px 0 0 0; color:#94a3b8;">Hacim: {veri['HacimKat']:.1f} Kat Arttı</p>
+                        </div>
+                    </div>
+                </div>
+                """, unsafe_allow_html=True)
+        else:
+            st.info("Kripto tarafı şu an sakin. Hacimler normal seyrediyor.")
+
+# --- BİLGİ NOTU ---
+st.divider()
+with st.expander("ℹ️ Balina Avcısı Nasıl Çalışır?"):
+    st.markdown("""
+    Bu algoritma, piyasadaki **anormal hacim hareketlerini** tespit eder.
+    * **Hacim Patlaması:** Bir coinin veya hissenin o saatlik hacmi, son 24 saatin ortalamasının **2.5 katına** çıkarsa radar öter.
+    * **Whale Buy:** Hacim artarken fiyat da artıyorsa, büyük bir oyuncu alım yapıyor demektir.
+    * **Whale Dump:** Hacim artarken fiyat sert düşüyorsa, panik satış veya yüklü çıkış var demektir.
+    """)
