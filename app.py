@@ -4,13 +4,13 @@ import pandas as pd
 
 # --- SAYFA AYARLARI ---
 st.set_page_config(page_title="Borsa Strateji", layout="centered")
-st.title("📈 Otomatik Borsa Stratejisi")
-st.caption("Yapay Zeka Yok, Saf Matematik Var. (Ücretsiz Versiyon)")
+st.title("📉 Destek & Direnç Analizi")
+st.caption("Otomatik Seviye Tespit Sistemi")
 
 # --- YAN MENÜ ---
 with st.sidebar:
     st.header("Ayarlar")
-    st.info("Bu modül tamamen ücretsizdir. OpenAI anahtarı gerektirmez.")
+    st.info("Bu modül ücretsizdir. Destek ve Direnç noktalarını matematiksel olarak hesaplar.")
 
 # --- HESAPLAMA MOTORU ---
 def teknik_analiz_yap(df):
@@ -21,16 +21,15 @@ def teknik_analiz_yap(df):
     sma20_seri = df['Close'].rolling(window=20).mean()
     sma50_seri = df['Close'].rolling(window=50).mean()
     
-    # Sadece son günün değerini alıyoruz
     sma20 = float(sma20_seri.iloc[-1])
     sma50 = float(sma50_seri.iloc[-1])
 
-    # 2. Bollinger Bantları
+    # 2. Bollinger Bantları (Destek ve Direnç için en iyisi)
     std_seri = df['Close'].rolling(window=20).std()
-    std = float(std_seri.iloc[-1]) # Son standart sapma
+    std = float(std_seri.iloc[-1])
     
-    ust_bant = sma20 + (2 * std)
-    alt_bant = sma20 - (2 * std)
+    ust_bant = sma20 + (2 * std) # DİRENÇ
+    alt_bant = sma20 - (2 * std) # DESTEK
     
     # 3. RSI Hesaplama
     delta = df['Close'].diff()
@@ -38,7 +37,7 @@ def teknik_analiz_yap(df):
     loss = (-delta.where(delta < 0, 0)).rolling(window=14).mean()
     rs = gain / loss
     rsi_seri = 100 - (100 / (1 + rs))
-    rsi = float(rsi_seri.iloc[-1]) # Son RSI değeri
+    rsi = float(rsi_seri.iloc[-1])
 
     return son_fiyat, rsi, alt_bant, ust_bant, sma50
 
@@ -46,36 +45,32 @@ def karar_ver(fiyat, rsi, alt_bant, ust_bant, sma50):
     puan = 0
     yorumlar = []
 
-    # --- STRATEJİ KURALLARI ---
-    
-    # Kural 1: RSI Stratejisi
+    # Kural 1: RSI
     if rsi < 35:
         puan += 2
-        yorumlar.append("✅ RSI aşırı satım bölgesinde (Ucuz).")
+        yorumlar.append("✅ RSI 'Ucuz' bölgede (35 altı).")
     elif rsi > 65:
         puan -= 2
-        yorumlar.append("⚠️ RSI aşırı alım bölgesinde (Pahalı).")
-    else:
-        yorumlar.append("ℹ️ RSI nötr bölgede.")
+        yorumlar.append("⚠️ RSI 'Pahalı' bölgede (65 üstü).")
 
-    # Kural 2: Bollinger Stratejisi
-    if fiyat < alt_bant * 1.02: 
+    # Kural 2: Destek/Direnç Yakınlığı
+    if fiyat <= alt_bant * 1.02: 
         puan += 1
-        yorumlar.append("✅ Fiyat destek seviyesine yakın.")
-    elif fiyat > ust_bant * 0.98:
+        yorumlar.append("✅ Fiyat DESTEK seviyesine çok yakın (Tepki verebilir).")
+    elif fiyat >= ust_bant * 0.98:
         puan -= 1
-        yorumlar.append("⚠️ Fiyat direnç seviyesine yakın.")
+        yorumlar.append("⚠️ Fiyat DİRENÇ seviyesine dayandı (Satış yiyebilir).")
 
-    # Kural 3: Trend (SMA 50)
+    # Kural 3: Trend
     if fiyat > sma50:
         puan += 1
-        yorumlar.append("✅ Trend Pozitif (50 günlüğün üzerinde).")
+        yorumlar.append("✅ Yükseliş Trendi (Fiyat ortalamanın üzerinde).")
     else:
         puan -= 1
-        yorumlar.append("🔻 Trend Negatif (50 günlüğün altında).")
+        yorumlar.append("🔻 Düşüş Trendi (Fiyat ortalamanın altında).")
 
-    # --- SONUÇ ---
-    karar = "NÖTR / BEKLE"
+    # Karar Mekanizması
+    karar = "NÖTR / İZLE"
     renk = "gray"
     
     if puan >= 3:
@@ -88,60 +83,48 @@ def karar_ver(fiyat, rsi, alt_bant, ust_bant, sma50):
         karar = "GÜÇLÜ SAT 🚨"
         renk = "red"
     elif puan <= -1:
-        karar = "SATIŞ BASKISI 🔻"
+        karar = "ZAYIF / SAT 🔻"
         renk = "red"
 
     return karar, renk, yorumlar
 
 # --- ARAYÜZ ---
-symbol_input = st.text_input("Hisse Kodu Girin", "THYAO")
-if ".IS" not in symbol_input.upper():
-    symbol = f"{symbol_input.upper()}.IS"
+symbol_input = st.text_input("Hisse Kodu", "THYAO").upper()
+if ".IS" not in symbol_input and "USD" not in symbol_input: # Dolar bazlı değilse .IS ekle
+    symbol = f"{symbol_input}.IS"
 else:
-    symbol = symbol_input.upper()
+    symbol = symbol_input
 
-period = st.selectbox("Zaman Dilimi", ["3mo", "6mo", "1y"], index=1)
+period = st.selectbox("Grafik Aralığı", ["3mo", "6mo", "1y"], index=1)
 
-if st.button("Analiz Et (Ücretsiz)", type="primary"):
-    with st.spinner('Hesaplanıyor...'):
+if st.button("Analiz Et", type="primary"):
+    with st.spinner('Destek ve Dirençler Hesaplanıyor...'):
         try:
             df = yf.download(symbol, period=period)
             
-            # Sütun düzeltme
             if isinstance(df.columns, pd.MultiIndex):
                 df.columns = df.columns.get_level_values(0)
 
             if not df.empty:
-                # Hesapla
                 fiyat, rsi, alt, ust, sma50 = teknik_analiz_yap(df)
                 karar, renk, yorumlar = karar_ver(fiyat, rsi, alt, ust, sma50)
 
-                # Grafiği Çiz
+                # 1. Grafiği Çiz (Üstte olsun)
                 st.line_chart(df['Close'])
 
-                # Temel Veriler
+                # 2. ÖNEMLİ RAKAMLAR (Destek Direnç Burada)
+                st.subheader("🎯 Kritik Seviyeler")
                 c1, c2, c3 = st.columns(3)
-                c1.metric("Fiyat", f"{fiyat:.2f} TL")
-                c2.metric("RSI", f"{rsi:.1f}")
-                c3.metric("Puan", f"{len(yorumlar)}")
+                
+                c1.metric("Güncel Fiyat", f"{fiyat:.2f} TL")
+                c2.metric("GÜÇLÜ DESTEK", f"{alt:.2f} TL", delta_color="normal", help="Fiyatın düşüp tepki vermesi beklenen yer")
+                c3.metric("GÜÇLÜ DİRENÇ", f"{ust:.2f} TL", delta_color="inverse", help="Fiyatın geçmekte zorlanacağı yer")
+
+                # 3. Ek Göstergeler
+                c4, c5 = st.columns(2)
+                c4.metric("RSI İndikatörü", f"{rsi:.1f}")
+                c5.metric("Trend Ortalaması", f"{sma50:.2f} TL")
 
                 st.divider()
 
-                # --- STRATEJİ SONUCU ---
-                st.subheader("📢 Sinyal Durumu")
-                
-                if renk == "green":
-                    st.success(f"### {karar}")
-                elif renk == "red":
-                    st.error(f"### {karar}")
-                else:
-                    st.warning(f"### {karar}")
-
-                st.write("---")
-                st.write("**Neden Böyle Düşünüyor?**")
-                for yorum in yorumlar:
-                    st.write(yorum)
-            else:
-                st.error("Veri çekilemedi.")
-        except Exception as e:
-            st.error(f"Hata oluştu: {e}")
+                #
