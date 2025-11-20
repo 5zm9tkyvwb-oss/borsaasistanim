@@ -1,78 +1,81 @@
 import streamlit as st
 import yfinance as yf
 import pandas as pd
-from openai import OpenAI
-import webbrowser
 
 # --- SAYFA AYARLARI ---
 st.set_page_config(page_title="HDFGS Patron Ekranı", layout="wide", page_icon="🦅")
 
-# Özel CSS (KAP Bildirimi ve Kartlar için)
+# Özel Tasarım
 st.markdown("""
     <style>
-    .metric-card {
-        background-color: #0e1117;
-        border: 1px solid #303030;
-        padding: 20px;
-        border-radius: 10px;
-        text-align: center;
-    }
-    .kap-button {
-        background-color: #FFD700;
-        color: black;
-        padding: 10px;
-        border-radius: 5px;
-        text-decoration: none;
-        font-weight: bold;
-        display: block;
-        text-align: center;
-    }
+    .metric-card { background-color: #0e1117; border: 1px solid #303030; padding: 15px; border-radius: 10px; text-align: center; }
+    .kap-button { background-color: #FFD700; color: black; padding: 12px; border-radius: 8px; text-decoration: none; font-weight: bold; display: block; text-align: center; font-size: 18px; }
+    .kap-button:hover { background-color: #E5C100; color: black; }
     </style>
 """, unsafe_allow_html=True)
 
-st.title("🦅 HDFGS Özel Yönetim Paneli")
+st.title("🦅 HDFGS: Sınırsız Patron Paneli")
 
-# --- YAN MENÜ: PORTFÖY AYARLARI ---
+# --- YAN MENÜ ---
 with st.sidebar:
-    st.header("💼 Portföy Bilgilerin")
-    openai_api_key = st.text_input("OpenAI API Key", type="password")
+    st.header("💼 Cüzdan Ayarları")
+    st.info("Bu modül tamamen ücretsizdir. Sınırsız analiz yapabilirsin.")
     
     st.divider()
-    
-    # Senin Maliyetin (Varsayılan 2.63)
     maliyet = st.number_input("Maliyetin (TL)", value=2.63, step=0.01)
-    adet = st.number_input("Elindeki Lot Sayısı", value=1000, step=100)
-    
-    st.info(f"Hesaplamalar **{maliyet} TL** maliyete göre yapılacaktır.")
+    adet = st.number_input("Lot Sayısı", value=1000, step=100)
 
-# --- VERİLERİ ÇEK ---
+# --- AKILLI YORUM MOTORU (Ücretsiz Yapay Zeka) ---
+def akilli_yorum_yap(fiyat, maliyet, rsi, direnc, destek):
+    yorumlar = []
+    
+    # 1. Maliyet Analizi
+    kar_durumu = fiyat - maliyet
+    if kar_durumu > 0:
+        fark_yuzde = (kar_durumu / maliyet) * 100
+        if fark_yuzde > 50:
+            yorumlar.append(f"🚀 **MÜKEMMEL KAZANÇ:** Maliyetin ({maliyet} TL) harika bir yerde kalmış. Şu an %{fark_yuzde:.1f} kardasın. Keyfini sür.")
+        else:
+            yorumlar.append(f"✅ **KARDASIN:** İşler yolunda. Maliyetinin üzerindesin, panik yapacak bir durum yok.")
+    else:
+        yorumlar.append(f"🔻 **ZARARDASIN:** Şu an maliyetinin biraz altındayız. Sakin kalıp destek seviyelerini takip etmelisin.")
+
+    # 2. RSI (Ucuzluk/Pahalılık)
+    if rsi < 30:
+        yorumlar.append("💎 **FIRSAT OLABİLİR:** Hisse teknik olarak 'Bedava' denecek kadar ucuzlamış (Aşırı Satım). Tepki yükselişi yakındır.")
+    elif rsi > 70:
+        yorumlar.append("🔥 **DİKKAT:** Hisse çok ısındı (Aşırı Alım). Kar satışı gelebilir, dikkatli ol.")
+    elif 50 <= rsi <= 70:
+        yorumlar.append("📈 **GÜÇLÜ:** Alıcılar hala istekli görünüyor, trend yukarı yönlü olabilir.")
+    else:
+        yorumlar.append("⏸️ **NÖTR:** Fiyat dengeli gidiyor. Ani bir hareket öncesi sessizlik olabilir.")
+
+    # 3. Destek/Direnç Stratejisi
+    if fiyat >= direnc * 0.98:
+        yorumlar.append(f"⚠️ **DİRENCE GELDİK:** Fiyat {direnc:.2f} TL seviyesine dayandı. Burayı geçemezse biraz geri çekilebilir.")
+    elif fiyat <= destek * 1.02:
+        yorumlar.append(f"🛡️ **DESTEKTEYİZ:** Fiyat {destek:.2f} TL desteğine tutunmaya çalışıyor. Buradan güç alıp dönebilir.")
+
+    return yorumlar
+
+# --- VERİ ÇEKME ---
 symbol = "HDFGS.IS"
-
 try:
-    # Son 6 aylık veri
     df = yf.download(symbol, period="6mo", progress=False)
-    
-    # Sütun temizliği
-    if hasattr(df.columns, 'levels'):
-        df.columns = df.columns.get_level_values(0)
+    if hasattr(df.columns, 'levels'): df.columns = df.columns.get_level_values(0)
         
     if not df.empty:
-        # --- HESAPLAMALAR ---
+        # Hesaplamalar
         son_fiyat = float(df['Close'].iloc[-1])
-        onceki_fiyat = float(df['Close'].iloc[-2])
-        degisim = ((son_fiyat - onceki_fiyat) / onceki_fiyat) * 100
-        
-        # Kar/Zarar Hesabı
         toplam_deger = son_fiyat * adet
-        yatirilan_tutar = maliyet * adet
-        net_kar = toplam_deger - yatirilan_tutar
-        kar_yuzdesi = ((son_fiyat - maliyet) / maliyet) * 100
+        net_kar = (son_fiyat - maliyet) * adet
+        yuzde_kar = ((son_fiyat - maliyet) / maliyet) * 100
         
-        # Teknik Veriler
+        # Teknik
         sma20 = df['Close'].rolling(20).mean().iloc[-1]
         std = df['Close'].rolling(20).std().iloc[-1]
-        ust_bant = sma20 + (2 * std) # Direnç
-        alt_bant = sma20 - (2 * std) # Destek
+        ust_bant = sma20 + (2 * std)
+        alt_bant = sma20 - (2 * std)
         
         # RSI
         delta = df['Close'].diff()
@@ -81,90 +84,48 @@ try:
         rs = gain / loss
         rsi = float(100 - (100 / (1 + rs)).iloc[-1])
 
-        # --- EKRAN DÜZENİ (Üst Kısım: Para Durumu) ---
-        st.subheader("💰 Canlı Kazanç Durumu")
-        
-        k1, k2, k3, k4 = st.columns(4)
-        
-        k1.metric("HDFGS Fiyatı", f"{son_fiyat:.2f} TL", f"%{degisim:.2f}")
-        
-        # Kar durumuna göre renkli gösterim
-        k2.metric("Net Karın (TL)", f"{net_kar:,.2f} TL", delta_color="normal" if net_kar > 0 else "inverse")
-        k3.metric("Kar Oranın", f"%{kar_yuzdesi:.2f}", delta_color="normal" if kar_yuzdesi > 0 else "inverse")
-        k4.metric("Toplam Portföy Değeri", f"{toplam_deger:,.2f} TL")
+        # --- EKRAN 1: PARA DURUMU ---
+        st.subheader("💰 Cüzdan Durumu")
+        k1, k2, k3 = st.columns(3)
+        k1.metric("Anlık Fiyat", f"{son_fiyat:.2f} TL")
+        k2.metric("Net Karın", f"{net_kar:,.2f} TL", delta_color="normal" if net_kar > 0 else "inverse")
+        k3.metric("Toplam Paran", f"{toplam_deger:,.2f} TL")
 
         st.divider()
-        
-        # --- GRAFİK VE ANALİZ ---
-        col_grafik, col_analiz = st.columns([2, 1])
-        
-        with col_grafik:
-            st.subheader("📈 Fiyat Grafiği")
-            st.line_chart(df['Close'])
-            
-        with col_analiz:
-            st.subheader("🎯 Destek & Direnç")
-            st.info(f"**DİRENÇ (Satış Bölgesi):**\n# {ust_bant:.2f} TL")
-            st.success(f"**DESTEK (Alım Bölgesi):**\n# {alt_bant:.2f} TL")
-            
-            st.write("---")
-            st.metric("RSI İndikatörü", f"{rsi:.1f}")
-            if rsi > 70:
-                st.warning("Hisse çok ısındı (Pahalı).")
-            elif rsi < 30:
-                st.success("Hisse çok ucuzladı.")
-            else:
-                st.info("Normal seyirde.")
 
-        # --- HABERLER VE KAP ---
-        st.divider()
-        st.subheader("📰 Haberler ve KAP Bildirimleri")
-        
-        # KAP Link Butonu (En garanti yöntem)
+        # --- EKRAN 2: HABER MERKEZİ (KAP) ---
         st.markdown(f"""
             <a href="https://www.kap.org.tr/tr/sirket-bilgileri/ozet/1686-hedef-girisim-sermayesi-yatirim-ortakligi-a-s" target="_blank" class="kap-button">
-                🔔 RESMİ KAP BİLDİRİMLERİ İÇİN TIKLA (HDFGS)
+                🔔 HDFGS KAP BİLDİRİMLERİ (RESMİ SİTE)
             </a>
         """, unsafe_allow_html=True)
-        st.write("")
-
-        # Yfinance Haberleri
-        try:
-            haberler = yf.Ticker("HDFGS.IS").news
-            if haberler:
-                for haber in haberler[:3]: # Son 3 haberi getir
-                    baslik = haber.get('title', 'Başlık Yok')
-                    link = haber.get('link', '#')
-                    zaman = pd.to_datetime(haber.get('providerPublishTime', 0), unit='s')
-                    st.write(f"🗓️ **{zaman.strftime('%d-%m-%Y')}** | [{baslik}]({link})")
-            else:
-                st.write("Güncel global haber akışı yok.")
-        except:
-            st.write("Haber akışı şu an çekilemedi.")
-
-        # --- YAPAY ZEKA YORUMU ---
-        st.divider()
-        if st.button("🤖 Yapay Zeka: 'Maliyetim 2.63, Ne Yapayım?'"):
-            if not openai_api_key:
-                st.error("Lütfen sol menüden API anahtarını gir.")
-            else:
-                client = OpenAI(api_key=openai_api_key)
-                prompt = f"""
-                Benim HDFGS hissem var. Maliyetim: {maliyet} TL.
-                Şu anki Fiyat: {son_fiyat} TL.
-                RSI: {rsi:.2f}.
-                Direnç: {ust_bant:.2f}. Destek: {alt_bant:.2f}.
-                
-                Bana kişisel bir yatırım danışmanı gibi tavsiye ver.
-                1. Karımı realize etmeli miyim yoksa beklemeli miyim?
-                2. Teknik olarak risk var mı?
-                3. Uzun vade için bu maliyet avantajlı mı?
-                Cevabı Türkçe, samimi ve kısa maddelerle ver.
-                """
-                with st.spinner("Yapay zeka portföyünü inceliyor..."):
-                    res = client.chat.completions.create(model="gpt-4o", messages=[{"role":"user", "content":prompt}])
-                    st.success("### 🧠 AI Portföy Koçu")
-                    st.write(res.choices[0].message.content)
+        
+        st.write("") # Boşluk
+        
+        # --- EKRAN 3: SINIRSIZ ANALİST ---
+        c1, c2 = st.columns([2, 1])
+        
+        with c1:
+            st.subheader("📈 Teknik Grafik")
+            st.line_chart(df['Close'])
+            
+        with c2:
+            st.subheader("🧠 Sınırsız Analiz")
+            
+            # Butona gerek yok, otomatik analiz etsin
+            analizler = akilli_yorum_yap(son_fiyat, maliyet, rsi, ust_bant, alt_bant)
+            
+            for yorum in analizler:
+                if "MÜKEMMEL" in yorum or "FIRSAT" in yorum:
+                    st.success(yorum)
+                elif "DİKKAT" in yorum or "ZARARDASIN" in yorum:
+                    st.error(yorum)
+                else:
+                    st.info(yorum)
+            
+            st.write("---")
+            st.metric("RSI Gücü", f"{rsi:.1f}")
+            st.metric("Direnç Hedefi", f"{ust_bant:.2f} TL")
 
     else:
         st.error("Veri alınamadı.")
