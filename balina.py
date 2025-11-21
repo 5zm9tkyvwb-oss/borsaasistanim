@@ -80,7 +80,14 @@ def grafik_ciz(symbol):
             fig.add_hline(y=r1, line_dash="dash", line_color="red", annotation_text=f"DİRENÇ: {r1:.2f}")
             fig.add_hline(y=s1, line_dash="dash", line_color="green", annotation_text=f"DESTEK: {s1:.2f}")
             
-            fig.update_layout(title=f"{symbol} Detaylı Analiz", template="plotly_dark", height=500, xaxis_rangeslider_visible=False)
+            fig.update_layout(
+                title=f"{symbol} Detaylı Analiz",
+                template="plotly_dark",
+                height=500,
+                xaxis_rangeslider_visible=False,
+                plot_bgcolor='#FFFF00', # <--- ÇİZİM ALANI SARI OLDU
+                paper_bgcolor='#0a0e17' # Dış çerçeve koyu kalsın
+            )
             
             return fig
     except:
@@ -111,6 +118,7 @@ def ana_uygulama():
         
         .hdfgs-ozel { border: 2px solid #FFD700; box-shadow: 0 0 20px #FFD700; animation: pulse 1.5s infinite; }
         @keyframes pulse { 0% { box-shadow: 0 0 5px #FFD700; } 50% { box-shadow: 0 0 20px #FFA500; } 100% { box-shadow: 0 0 5px #FFD700; } }
+        @keyframes flash { 0% { opacity: 1; } 50% { opacity: 0.5; } 100% { opacity: 1; } }
         </style>
         <div class="pala-sticker"><span style="font-size:30px">🥸</span><br>İYİ TAHTALAR</div>
     """, unsafe_allow_html=True)
@@ -251,7 +259,7 @@ def ana_uygulama():
                         </div>
                     </div>""", unsafe_allow_html=True)
                     
-                    # BUTON (Kartın Altına)
+                    # BUTON
                     if st.button(f"GRAFİK AÇ ({veri['Sembol']}) 📈", key=f"btn_{veri['Sembol']}"):
                         st.session_state.secilen_hisse = veri['Kod']
                         st.rerun()
