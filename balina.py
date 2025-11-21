@@ -5,12 +5,41 @@ import time
 from datetime import datetime
 
 # --- SAYFA AYARLARI ---
-st.set_page_config(page_title="Hızlı Balina Avcısı", layout="wide", page_icon="⚡")
+st.set_page_config(page_title="Pala Balina Avlıyor", layout="wide", page_icon="👓")
 
-# --- CSS TASARIMI ---
+# --- CSS TASARIMI (PALA ÖZEL) ---
 st.markdown("""
     <style>
     .stApp { background-color: #0a0e17; color: white; }
+    
+    /* PALA KÖŞE ÇIKARTMASI */
+    .pala-sticker {
+        position: fixed;
+        top: 15px;
+        right: 20px;
+        background-color: #facc15; /* Sarı zemin */
+        color: black;
+        padding: 5px 10px;
+        border-radius: 15px;
+        border: 3px solid #000;
+        text-align: center;
+        font-weight: bold;
+        z-index: 9999;
+        box-shadow: 0 4px 10px rgba(0,0,0,0.5);
+        transform: rotate(10deg); /* Hafif yan duruş */
+    }
+    .pala-emoji {
+        font-size: 35px;
+        display: block;
+        line-height: 1;
+    }
+    .pala-text {
+        font-size: 14px;
+        display: block;
+        font-family: 'Arial Black', sans-serif;
+    }
+
+    /* Kart Tasarımları */
     .balina-karti { padding: 12px; border-radius: 12px; margin-bottom: 8px; border: 1px solid #374151; }
     .bist-card { background: linear-gradient(90deg, #0f2027 0%, #2c5364 100%); border-left: 4px solid #38bdf8; }
     .crypto-card { background: linear-gradient(90deg, #201c05 0%, #423808 100%); border-left: 4px solid #facc15; }
@@ -18,12 +47,19 @@ st.markdown("""
     .buy { background-color: #059669; color: white; }
     .sell { background-color: #dc2626; color: white; }
     .future { background-color: #7c3aed; color: white; border: 1px solid #a78bfa; } /* Mor renk: Gelecek Potansiyeli */
-    .hdfgs-ozel { border: 2px solid #FFD700; box-shadow: 0 0 10px #FFD700; }
+    .hdfgs-ozel { border: 2px solid #FFD700; box-shadow: 0 0 15px #FFD700; animation: pulse 2s infinite; }
+    @keyframes pulse { 0% { box-shadow: 0 0 5px #FFD700; } 50% { box-shadow: 0 0 25px #FFA500; } 100% { box-shadow: 0 0 5px #FFD700; } }
     </style>
+    
+    <div class="pala-sticker">
+        <span class="pala-emoji">👴👓</span>
+        <span class="pala-text">PALA İŞ BAŞINDA</span>
+    </div>
 """, unsafe_allow_html=True)
 
-st.title("⚡ BALİNA & GELECEK AVARLAR")
-st.caption("Anlık Balinalar • Yarının Potansiyelleri • HDFGS")
+# --- BAŞLIK DEĞİŞİMİ ---
+st.title("👓 PALA BALİNA AVLIYOR")
+st.caption("Bıyıklı & Gözlüklü Borsa Analizi • HDFGS Özel Takip • Yarının Yıldızları")
 
 # --- LİSTELER ---
 bist_listesi = [
@@ -51,7 +87,7 @@ kripto_listesi = [
 def verileri_getir(liste, piyasa_tipi):
     sinyaller = []
     toplam = len(liste)
-    bar = st.progress(0, text=f"{piyasa_tipi} Taranıyor...")
+    bar = st.progress(0, text=f"Pala {piyasa_tipi} Piyasasına Bakıyor...")
     
     for i, symbol in enumerate(liste):
         try:
@@ -87,31 +123,30 @@ def verileri_getir(liste, piyasa_tipi):
                         aciklama = "Anlık Hacim Artışı Var"
                     else:
                         durum = "HDFGS SAKİN"
-                        aciklama = "Takipteyiz..."
+                        aciklama = "Pala Takipte..."
                 
                 # --- 2. ANLIK BALİNA (Bugün Patlayanlar) ---
                 elif kat > 2.5:
                     if degisim > 0.5: 
-                        durum = "WHALE BUY 🚀"
+                        durum = "BALİNA GİRDİ 🚀"
                         renk = "buy"
                         aciklama = f"Hacim {kat:.1f} Kat Arttı!"
                     elif degisim < -0.5: 
-                        durum = "WHALE DUMP 🔻"
+                        durum = "BALİNA ÇIKTI 🔻"
                         renk = "sell"
                         aciklama = "Yüklü Satış Geliyor!"
                 
                 # --- 3. GELECEK POTANSİYELİ (Yarın Patlayabilir) ---
-                # Mantık: Fiyat düşmüş (RSI < 35) ama Hacim yavaş yavaş artıyor (Toplama var)
                 elif rsi < 35 and kat > 1.2:
-                    durum = "GİZLİ TOPLAMA 🕵️"
+                    durum = "SİNSİ TOPLAMA 🕵️"
                     renk = "future" # Mor renk
-                    aciklama = "Fiyat dipte, hacim artıyor (Dönüş Sinyali)"
+                    aciklama = "Fiyat dipte, hacim artıyor (Pala kokuyu aldı)"
                 
                 # Mantık: RSI çok şişmiş, yarın düşebilir
                 elif rsi > 75:
                     durum = "KAR SATIŞI RİSKİ ⚠️"
                     renk = "sell"
-                    aciklama = "Aşırı Alım Bölgesinde"
+                    aciklama = "Çok şişti, dikkat!"
 
                 if durum:
                     isim = symbol.replace(".IS", "").replace("-USD", "")
@@ -138,7 +173,7 @@ zaman = datetime.now().strftime("%H:%M")
 with tab1:
     st.caption(f"Son Güncelleme: {zaman}")
     sonuclar = verileri_getir(bist_listesi, "BIST")
-    if st.button("🔄 Yenile (BIST)"): st.cache_data.clear(); st.rerun()
+    if st.button("🔄 Pala Yenile (BIST)"): st.cache_data.clear(); st.rerun()
     
     if sonuclar:
         cols = st.columns(2)
@@ -158,12 +193,12 @@ with tab1:
                         </div>
                     </div>
                 </div>""", unsafe_allow_html=True)
-    else: st.info("BIST sakin.")
+    else: st.info("BIST sakin, Pala çay içiyor.")
 
 with tab2:
     st.caption("Kripto Piyasası")
     sonuclar_kripto = verileri_getir(kripto_listesi, "KRIPTO")
-    if st.button("🔄 Yenile (Kripto)"): st.cache_data.clear(); st.rerun()
+    if st.button("🔄 Pala Yenile (Kripto)"): st.cache_data.clear(); st.rerun()
     
     if sonuclar_kripto:
         cols = st.columns(2)
