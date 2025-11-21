@@ -1,4 +1,3 @@
-
 import streamlit as st
 import yfinance as yf
 import pandas as pd
@@ -58,13 +57,13 @@ def load_db():
     except:
         return {}
 
-# Session State Başlatma
+# Session State
 if 'db' not in st.session_state: st.session_state.db = load_db()
 if 'giris_yapildi' not in st.session_state: st.session_state.giris_yapildi = False
 if 'login_user' not in st.session_state: st.session_state.login_user = None
 if 'secilen_hisse' not in st.session_state: st.session_state.secilen_hisse = None
 
-# --- TASARIM (SİYAH & ALTIN & NEON) ---
+# --- TASARIM (NEON) ---
 st.markdown("""
     <style>
     .stApp { background-color: #000000 !important; color: #e5e5e5 !important; }
@@ -82,7 +81,7 @@ st.markdown("""
     }
     
     /* Inputlar */
-    .stTextInput input, .stNumberInput input, .stTextArea textarea { 
+    .stTextInput input, .stNumberInput input { 
         background-color: #111 !important; color: #FFD700 !important; 
         border: 1px solid #555 !important; 
     }
@@ -104,6 +103,7 @@ st.markdown("""
     .signal-box { padding: 4px 8px; border-radius: 4px; font-weight: bold; font-size: 12px; display: inline-block; }
     .buy { background-color: #064e3b; color: #34d399; } 
     .sell { background-color: #450a0a; color: #f87171; } 
+    .future { background-color: #4c1d95; color: #a78bfa; border: 1px solid #a78bfa; }
     
     .hdfgs-ozel { border: 2px solid #FFD700; box-shadow: 0 0 20px rgba(255, 215, 0, 0.2); animation: pulse 1.5s infinite; }
     
@@ -112,20 +112,6 @@ st.markdown("""
         50% { box-shadow: 0 0 20px rgba(255,215,0,0.6); } 
         100% { box-shadow: 0 0 5px rgba(255,215,0,0.2); } 
     }
-
-    /* TOP 10 KARTLARI */
-    .top10-card {
-        background-color: #0a0a0a;
-        border: 1px solid #4ade80;
-        border-radius: 10px;
-        padding: 10px;
-        text-align: center;
-        margin-bottom: 10px;
-        box-shadow: 0 4px 6px rgba(74, 222, 128, 0.1);
-    }
-    .top10-title { color: #FFD700; font-weight: bold; font-size: 18px; margin: 0; }
-    .top10-price { color: white; font-size: 16px; font-weight: bold; margin: 5px 0; }
-    .top10-change { color: #4ade80; font-weight: bold; font-size: 14px; }
     </style>
     <div class="pala-sticker"><span style="font-size:30px">🥸</span><br>İYİ TAHTALAR</div>
 """, unsafe_allow_html=True)
@@ -149,51 +135,18 @@ def to_excel(df):
         df.to_excel(writer, index=False, sheet_name='Sheet1')
     return output.getvalue()
 
-# --- HAFTANIN YILDIZLARI (TOP 10) ---
-@st.cache_data(ttl=3600) # 1 Saat boyunca hafızada tut (Hız için)
-def get_weekly_top10():
-    # Popüler ve Hacimli Hisse Havuzu
-    candidates = [
-        "HDFGS.IS", "THYAO.IS", "ASELS.IS", "GARAN.IS", "AKBNK.IS", "TUPRS.IS", "SASA.IS", "HEKTS.IS", 
-        "EREGL.IS", "KCHOL.IS", "BIMAS.IS", "EKGYO.IS", "ODAS.IS", "KONTR.IS", "GUBRF.IS", "FROTO.IS", 
-        "ASTOR.IS", "EUPWR.IS", "GESAN.IS", "SMRTG.IS", "ALFAS.IS", "CANTE.IS", "REEDR.IS", "CVKMD.IS", 
-        "KCAER.IS", "OYAKC.IS", "EGEEN.IS", "DOAS.IS", "MGROS.IS", "SOKM.IS", "ISCTR.IS", "YKBNK.IS",
-        "SAHOL.IS", "TCELL.IS", "VESTL.IS", "ARCLK.IS", "KOZAL.IS", "PETKM.IS", "PGSUS.IS"
-    ]
-    
-    results = []
-    for s in candidates:
-        try:
-            # Son 5 günlük veri (Haftalık Performans)
-            df = yf.download(s, period="5d", interval="1d", progress=False)
-            if hasattr(df.columns, 'levels'): df.columns = df.columns.get_level_values(0)
-            
-            if len(df) > 1:
-                ilk_fiyat = df['Open'].iloc[0]
-                son_fiyat = df['Close'].iloc[-1]
-                degisim = ((son_fiyat - ilk_fiyat) / ilk_fiyat) * 100
-                
-                # Sadece Yükselenleri Al
-                if degisim > 0:
-                    results.append({
-                        "Sembol": s.replace(".IS",""), 
-                        "Fiyat": son_fiyat, 
-                        "Degisim": degisim
-                    })
-        except: pass
-    
-    # En çok artana göre sırala ve ilk 10'u al
-    top_10 = sorted(results, key=lambda x: x['Degisim'], reverse=True)[:10]
-    return top_10
-
 # --- GRAFİK MOTORU ---
 def grafik_ciz(symbol):
     try:
         df = yf.download(symbol, period="6mo", interval="1d", progress=False)
         if hasattr(df.columns, 'levels'): df.columns = df.columns.get_level_values(0)
+        
         if not df.empty:
-            prev = df.iloc[-2]; pivot = (prev['High']+prev['Low']+prev['Close'])/3
-            r1=(2*pivot)-prev['Low']; s1=(2*pivot)-prev['High']
+            prev = df.iloc[-2]
+            pivot = (prev['High'] + prev['Low'] + prev['Close']) / 3
+            r1 = (2 * pivot) - prev['Low']
+            s1 = (2 * pivot) - prev['High']
+            
             fig = go.Figure()
             fig.add_trace(go.Candlestick(x=df.index, open=df['Open'], high=df['High'], low=df['Low'], close=df['Close'], name="Fiyat"))
             fig.add_hline(y=r1, line_dash="dash", line_color="red", annotation_text="DİRENÇ")
@@ -207,7 +160,8 @@ def grafik_ciz(symbol):
             except: pass
 
             return fig, df.iloc[-1]['Close'], s1, r1, news
-    except: return None, None, None, None, None
+    except: 
+        return None, None, None, None, None
 
 # ==========================================
 # 1. YÖNETİM PANELİ
@@ -237,16 +191,23 @@ def admin_dashboard():
             with col1:
                 onaysizlar = [u['Kullanıcı'] for u in uye_data if u['Durum'] == "❌ Bekliyor"]
                 if onaysizlar:
-                    u_app = st.selectbox("Onayla:", onaysizlar)
+                    user_to_approve = st.selectbox("Onaylanacak Kişi:", onaysizlar)
                     if st.button("YETKİ VER (ONAYLA)"):
-                        db[u_app]['onay'] = True; save_db(db)
-                        st.success(f"{u_app} onaylandı!"); send_telegram(f"✅ Üye Onaylandı: {u_app}"); time.sleep(1); st.rerun()
+                        db[user_to_approve]['onay'] = True
+                        save_db(db)
+                        st.success(f"{user_to_approve} onaylandı!")
+                        time.sleep(1)
+                        st.rerun()
             with col2:
-                tum = [u['Kullanıcı'] for u in uye_data]
-                if tum:
-                    u_del = st.selectbox("Sil:", tum)
+                tum_uyeler = [u['Kullanıcı'] for u in uye_data]
+                if tum_uyeler:
+                    user_to_delete = st.selectbox("Silinecek Kişi:", tum_uyeler)
                     if st.button("ÜYELİĞİ SİL"):
-                        del db[u_del]; save_db(db); st.warning(f"{u_del} silindi!"); time.sleep(1); st.rerun()
+                        del db[user_to_delete]
+                        save_db(db)
+                        st.warning(f"{user_to_delete} silindi!")
+                        time.sleep(1)
+                        st.rerun()
         else: st.info("Kayıtlı üye yok.")
 
     elif menu == "Gelen Mesajlar":
@@ -269,50 +230,53 @@ def ana_uygulama():
     with col_head[0]:
         isim = db[user].get('isim', 'Üye')
         st.title("🥸 PALA İLE İYİ TAHTALAR")
-        st.caption(f"Hoşgeldin Patron | VIP Panel")
+        st.caption(f"Hoşgeldin {isim} | VIP Panel")
     with col_head[1]:
-        if st.button("ÇIKIŞ YAP"): st.session_state.login_user=None; st.rerun()
+        if st.button("ÇIKIŞ YAP"):
+            st.session_state.login_user = None
+            st.rerun()
 
-    if db[user].get('rol') == 'admin': admin_dashboard()
+    if db[user].get('rol') == 'admin':
+        admin_dashboard()
 
-    # --- HAFTANIN YILDIZLARI (TOP 10) ---
-    st.markdown("### 🏆 HAFTANIN POPÜLER YÜKSELENLERİ (TOP 10)")
-    top10 = get_weekly_top10()
+    # --- MERKEZİ ARAMA ---
+    st.markdown("---")
+    st.markdown("<h3 style='text-align:center; color:#FFD700;'>🔍 HİSSE / COIN SORGULA</h3>", unsafe_allow_html=True)
     
-    if top10:
-        cols = st.columns(5) # 5'li sıra
-        for i, item in enumerate(top10):
-            if i < 5: # İlk sıra
-                with cols[i]:
-                    st.markdown(f"""
-                    <div class="top10-card">
-                        <div class="top10-title">{item['Sembol']}</div>
-                        <div class="top10-price">{item['Fiyat']:.2f} TL</div>
-                        <div class="top10-change">▲ %{item['Degisim']:.1f}</div>
-                    </div>
-                    """, unsafe_allow_html=True)
-        
-        cols2 = st.columns(5) # İkinci sıra
-        for i, item in enumerate(top10):
-            if i >= 5:
-                with cols2[i-5]:
-                    st.markdown(f"""
-                    <div class="top10-card">
-                        <div class="top10-title">{item['Sembol']}</div>
-                        <div class="top10-price">{item['Fiyat']:.2f} TL</div>
-                        <div class="top10-change">▲ %{item['Degisim']:.1f}</div>
-                    </div>
-                    """, unsafe_allow_html=True)
-    else:
-        st.info("Veriler yükleniyor... (Piyasa açılışında güncellenir)")
-    
-    st.divider()
+    col_search1, col_search2 = st.columns([3, 1])
+    with col_search1:
+        arama = st.text_input("Hisse Kodu (Örn: HDFGS, THYAO, BTC-USD)", placeholder="Kodu buraya yaz...").upper()
+    with col_search2:
+        st.write("") 
+        st.write("") 
+        ara_btn = st.button("ANALİZ ET 🚀")
 
-    # MENÜ
+    if ara_btn and arama:
+        if "-" not in arama and ".IS" not in arama and "USD" not in arama: symbol = f"{arama}.IS"
+        else: symbol = arama
+            
+        with st.spinner(f"{symbol} İnceleniyor..."):
+            fig, fiyat, s1, r1, haberler = grafik_ciz(symbol)
+            if fig:
+                st.success(f"✅ {symbol} Analizi Hazır!")
+                k1, k2, k3 = st.columns(3)
+                k1.metric("ANLIK FİYAT", f"{fiyat:.2f}")
+                k2.markdown(f"<div style='text-align:center; border:1px solid green; padding:10px; border-radius:10px;'><span style='color:gray'>GÜVENLİ ALIM YERİ</span><br><span class='buy-zone'>{s1:.2f}</span></div>", unsafe_allow_html=True)
+                k3.markdown(f"<div style='text-align:center; border:1px solid red; padding:10px; border-radius:10px;'><span style='color:gray'>KAR ALMA YERİ</span><br><span class='sell-zone'>{r1:.2f}</span></div>", unsafe_allow_html=True)
+                st.write("")
+                st.plotly_chart(fig, use_container_width=True)
+                if haberler:
+                    st.write("#### 📰 İlgili Haberler")
+                    for h in haberler: st.markdown(h)
+            else: st.error("Hisse bulunamadı!")
+
+    st.markdown("---")
+
+    # --- MENU ---
     menu = st.radio("NAVİGASYON:", ["📊 PİYASA RADARI", "💼 CÜZDAN", "🔥 ISI HARİTASI", "📒 LOGLAR", "🩻 RÖNTGEN", "⚔️ DÜELLO"], horizontal=True)
     st.divider()
 
-    # --- CÜZDAN ---
+    # --- MODÜL: CÜZDAN ---
     if menu == "💼 CÜZDAN":
         st.subheader("💰 Varlık Yönetimi")
         with st.expander("➕ Hisse Ekle"):
@@ -354,30 +318,8 @@ def ana_uygulama():
                 db[user]["portfoy"] = [p for p in db[user]["portfoy"] if p['sembol'] != sil]; save_db(db); st.rerun()
         else: st.info("Cüzdan boş.")
 
-    # --- PİYASA RADARI ---
+    # --- MODÜL: PİYASA RADARI ---
     elif menu == "📊 PİYASA RADARI":
-        c_s1, c_s2 = st.columns([3, 1])
-        arama = c_s1.text_input("Hisse/Coin Ara:", placeholder="HDFGS...").upper()
-        if c_s2.button("ANALİZ ET 🚀"):
-            sym = f"{arama}.IS" if "-" not in arama and ".IS" not in arama and "USD" not in arama else arama
-            st.session_state.secilen_hisse = sym; st.rerun()
-
-        if st.session_state.secilen_hisse:
-            with st.spinner("İnceleniyor..."):
-                fig, fiyat, s1, r1, news = grafik_ciz(st.session_state.secilen_hisse)
-                if fig:
-                    st.success(f"✅ {st.session_state.secilen_hisse} Hazır!")
-                    k1, k2, k3 = st.columns(3)
-                    k1.metric("FİYAT", f"{fiyat:.2f}")
-                    k2.metric("DESTEK", f"{s1:.2f}")
-                    k3.metric("DİRENÇ", f"{r1:.2f}")
-                    st.plotly_chart(fig, use_container_width=True)
-                    if news:
-                        st.write("#### 📰 Haberler")
-                        for n in news: st.markdown(n)
-            if st.button("Kapat X"): st.session_state.secilen_hisse = None; st.rerun()
-            st.divider()
-
         # Listeler
         bist_listesi = ["HDFGS.IS", "THYAO.IS", "ASELS.IS", "GARAN.IS", "EREGL.IS", "KCHOL.IS", "AKBNK.IS", "TUPRS.IS", "SASA.IS", "HEKTS.IS", "PETKM.IS", "BIMAS.IS", "EKGYO.IS", "ODAS.IS", "KONTR.IS", "GUBRF.IS", "FROTO.IS", "TTKOM.IS", "ISCTR.IS", "YKBNK.IS"]
         kripto_listesi = ["BTC-USD", "ETH-USD", "BNB-USD", "SOL-USD", "XRP-USD", "DOGE-USD", "ADA-USD", "AVAX-USD", "SHIB-USD", "DOT-USD"]
@@ -391,25 +333,34 @@ def ana_uygulama():
                 try:
                     df = yf.download(symbol, period="3d", interval="1h", progress=False)
                     if hasattr(df.columns, 'levels'): df.columns = df.columns.get_level_values(0)
+                    
                     if len(df) > 10:
                         son = df.iloc[-1]; hacim_son = son['Volume']; hacim_ort = df['Volume'].rolling(20).mean().iloc[-1]; kat = hacim_son / hacim_ort if hacim_ort > 0 else 0
                         fiyat = son['Close']; degisim = ((fiyat - df['Open'].iloc[-1]) / df['Open'].iloc[-1]) * 100
-                        durum = None; renk = "gray"; aciklama = ""
+                        
+                        durum = None; renk = "gray"; aciklama = ""; oncelik = 0
+                        
                         if "HDFGS" in symbol:
-                            if kat > 1.1: durum = "HDFGS HAREKETLİ 🦅"; renk = "buy"
-                            else: durum = "HDFGS SAKİN"
+                            # HDFGS her zaman listede olsun
+                            if kat > 1.1: durum = "HDFGS HAREKETLİ 🦅"; renk = "buy"; oncelik = 999
+                            else: durum = "HDFGS SAKİN"; oncelik = 999
+                        
                         elif kat > 2.5:
-                            durum = "BALİNA 🚀" if degisim > 0 else "SATIŞ 🔻"; renk = "buy" if degisim > 0 else "sell"; aciklama = f"Hacim {kat:.1f}x"
+                            durum = "BALİNA 🚀" if degisim > 0 else "SATIŞ 🔻"; renk = "buy" if degisim > 0 else "sell"; aciklama = f"Hacim {kat:.1f}x"; oncelik = kat
+                        
                         if durum:
                             isim = symbol.replace(".IS", "").replace("-USD", "")
-                            bulunanlar.append({"Sembol": isim, "Fiyat": fiyat, "Degisim": degisim, "HacimKat": kat, "Sinyal": durum, "Renk": renk, "Aciklama": aciklama, "Kod": symbol})
+                            bulunanlar.append({"Sembol": isim, "Fiyat": fiyat, "Degisim": degisim, "HacimKat": kat, "Sinyal": durum, "Renk": renk, "Aciklama": aciklama, "Kod": symbol, "Oncelik": oncelik})
+                            
                             if bildirim:
                                 if "HDFGS" in symbol and kat > 1.1: log_ekle(f"HDFGS Hareketlendi! {fiyat:.2f}")
                                 elif kat > 2.5: log_ekle(f"{isim} BALİNA! {fiyat:.2f}")
+
                     bar.progress((i+1)/len(liste)); time.sleep(0.01)
                 except: continue
             bar.empty()
-            return bulunanlar
+            # Sıralama: HDFGS en üstte, sonra hacme göre
+            return sorted(bulunanlar, key=lambda x: x['Oncelik'], reverse=True)
 
         t1, t2 = st.tabs(["🏙️ BIST", "₿ KRİPTO"])
         with t1:
@@ -461,7 +412,7 @@ def ana_uygulama():
     elif menu == "🔥 ISI HARİTASI":
         st.subheader("Piyasa Haritası")
         if st.button("HARİTA ÇİZ 🗺️"):
-            l = ["HDFGS.IS", "THYAO.IS", "ASELS.IS", "GARAN.IS", "EREGL.IS", "KCHOL.IS", "AKBNK.IS"]
+            l = ["HDFGS.IS", "THYAO.IS", "ASELS.IS", "GARAN.IS", "EREGL.IS", "KCHOL.IS", "AKBNK.IS", "TUPRS.IS", "SASA.IS", "HEKTS.IS"]
             with st.spinner("Veriler işleniyor..."):
                 data = []
                 for sym in l:
@@ -488,7 +439,7 @@ def login_page():
     t1, t2 = st.tabs(["GİRİŞ YAP", "KAYIT OL"])
     with t1:
         k = st.text_input("Kullanıcı"); s = st.text_input("Şifre", type="password")
-        if st.checkbox("Sıfırla (Hata Alırsan)"):
+        if st.checkbox("Sıfırla"):
             if st.button("SİSTEMİ ONAR"):
                 st.session_state.db = {"admin": {"sifre": "pala500", "isim": "Patron", "onay": True, "rol": "admin", "mesajlar": [], "loglar": [], "portfoy": []}}
                 save_db(st.session_state.db); st.success("Admin Hazır")
@@ -508,7 +459,7 @@ def payment_screen():
     c1, c2 = st.columns(2)
     with c1: st.markdown("<div class='odeme-kutu'><strong>USDT</strong><br>TXa...</div>", unsafe_allow_html=True)
     with c2:
-        msg = st.text_area("Dekont Bilgisi"); 
+        msg = st.text_area("Dekont"); 
         if st.button("GÖNDER"):
             u=st.session_state.login_user; db=load_db()
             if "mesajlar" not in db[u]: db[u]["mesajlar"]=[]
