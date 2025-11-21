@@ -2,189 +2,215 @@ import streamlit as st
 import yfinance as yf
 import pandas as pd
 import time
+import plotly.graph_objects as go
+from datetime import datetime
 
 # --- SAYFA AYARLARI ---
-st.set_page_config(page_title="BIST Pro Analiz", layout="wide", page_icon="📊")
+st.set_page_config(page_title="Balina Avcısı PRO", layout="wide", page_icon="🦅")
 
 # --- CSS TASARIMI ---
 st.markdown("""
     <style>
-    .stApp { background-color: #0e1117; color: white; }
-    
-    /* Kart Tasarımı */
-    .analiz-karti {
-        background-color: #1f2937;
-        padding: 20px;
-        border-radius: 15px;
-        margin-bottom: 15px;
-        border: 1px solid #374151;
-        box-shadow: 0 4px 6px rgba(0,0,0,0.3);
-    }
-    .hdfgs-ozel { border: 2px solid #FFD700; box-shadow: 0 0 20px rgba(255, 215, 0, 0.2); }
-    
-    /* Etiketler */
-    .etiket {
-        display: inline-block;
-        padding: 5px 10px;
-        border-radius: 5px;
-        font-size: 12px;
-        font-weight: bold;
-        margin-right: 5px;
-    }
-    .yukselir { background-color: #065f46; color: #34d399; border: 1px solid #34d399; }
-    .duser { background-color: #7f1d1d; color: #f87171; border: 1px solid #f87171; }
-    .notr { background-color: #374151; color: #9ca3af; }
-    
-    /* Para Barı */
-    .para-bar-bg { width: 100%; height: 10px; background-color: #374151; border-radius: 5px; margin-top: 8px; overflow: hidden; }
-    .para-bar-doluluk { height: 100%; border-radius: 5px; }
+    .stApp { background-color: #0a0e17; color: white; }
+    .balina-karti { padding: 12px; border-radius: 12px; margin-bottom: 8px; border: 1px solid #374151; }
+    .bist-card { background: linear-gradient(90deg, #0f2027 0%, #2c5364 100%); border-left: 4px solid #38bdf8; }
+    .crypto-card { background: linear-gradient(90deg, #201c05 0%, #423808 100%); border-left: 4px solid #facc15; }
+    .signal-box { padding: 4px 8px; border-radius: 4px; font-weight: bold; font-size: 12px; display: inline-block; }
+    .buy { background-color: #059669; color: white; }
+    .sell { background-color: #dc2626; color: white; }
+    .hdfgs-ozel { border: 2px solid #FFD700; box-shadow: 0 0 15px #FFD700; animation: pulse 2s infinite; }
+    @keyframes pulse { 0% { box-shadow: 0 0 5px #FFD700; } 50% { box-shadow: 0 0 20px #FFA500; } 100% { box-shadow: 0 0 5px #FFD700; } }
     </style>
 """, unsafe_allow_html=True)
 
-st.title("📊 AYLIK POPÜLER HİSSE ANALİZİ")
-st.caption("Para Giriş/Çıkışı • AI Tahmini • HDFGS Özel Takip")
+st.title("🦅 BALİNA AVCISI & GRAFİK MERKEZİ")
 
-# --- HİSSE LİSTESİ (BIST En Popülerler) ---
-hisseler = [
-    "HDFGS.IS", # <-- KRAL
+# ==========================================
+# 1. DETAYLI GRAFİK ANALİZİ (ÜST BÖLÜM)
+# ==========================================
+with st.container():
+    st.markdown("### 🔍 Detaylı Hisse/Coin Analizi (Destek-Direnç Çizimli)")
+    col_input, col_btn = st.columns([3, 1])
+    
+    with col_input:
+        secilen_varlik = st.text_input("İncelenecek Varlık Kodu:", "HDFGS.IS").upper()
+    with col_btn:
+        st.write("") # Hizalama boşluğu
+        st.write("") 
+        analiz_et = st.button("GRAFİK ÇİZ 📈", type="primary")
+
+    if analiz_et:
+        try:
+            with st.spinner("Grafik çiziliyor ve seviyeler hesaplanıyor..."):
+                # Veri Çek
+                df_grafik = yf.download(secilen_varlik, period="6mo", interval="1d", progress=False)
+                if hasattr(df_grafik.columns, 'levels'): df_grafik.columns = df_grafik.columns.get_level_values(0)
+                
+                if not df_grafik.empty:
+                    son_fiyat = df_grafik['Close'].iloc[-1]
+                    
+                    # PİVOT HESABI (Destek/Direnç)
+                    high = df_grafik['High'].iloc[-2]
+                    low = df_grafik['Low'].iloc[-2]
+                    close = df_grafik['Close'].iloc[-2]
+                    
+                    pivot = (high + low + close) / 3
+                    r1 = (2 * pivot) - low  # Direnç
+                    s1 = (2 * pivot) - high # Destek
+                    
+                    # GRAFİK OLUŞTUR (Plotly)
+                    fig = go.Figure()
+                    
+                    # Mum Grafiği
+                    fig.add_trace(go.Candlestick(
+                        x=df_grafik.index,
+                        open=df_grafik['Open'], high=df_grafik['High'],
+                        low=df_grafik['Low'], close=df_grafik['Close'],
+                        name="Fiyat"
+                    ))
+                    
+                    # Destek Çizgisi (Yeşil)
+                    fig.add_hline(y=s1, line_dash="dash", line_color="green", annotation_text=f"GÜÇLÜ DESTEK: {s1:.2f}", annotation_position="bottom right")
+                    
+                    # Direnç Çizgisi (Kırmızı)
+                    fig.add_hline(y=r1, line_dash="dash", line_color="red", annotation_text=f"GÜÇLÜ DİRENÇ: {r1:.2f}", annotation_position="top right")
+                    
+                    # Pivot (Sarı)
+                    fig.add_hline(y=pivot, line_dash="dot", line_color="yellow", annotation_text="PİVOT", annotation_position="right")
+
+                    # Grafik Ayarları
+                    fig.update_layout(
+                        title=f"{secilen_varlik} Analiz Grafiği",
+                        yaxis_title="Fiyat",
+                        xaxis_rangeslider_visible=False,
+                        template="plotly_dark",
+                        height=500
+                    )
+                    
+                    # Ekrana Bas
+                    st.plotly_chart(fig, use_container_width=True)
+                    
+                    # Yorum
+                    col_res1, col_res2, col_res3 = st.columns(3)
+                    col_res1.metric("Anlık Fiyat", f"{son_fiyat:.2f}")
+                    col_res2.metric("Destek (Alım)", f"{s1:.2f}", delta_color="normal")
+                    col_res3.metric("Direnç (Satım)", f"{r1:.2f}", delta_color="inverse")
+                    
+                else:
+                    st.error("Veri bulunamadı.")
+        except Exception as e:
+            st.error(f"Hata: {e}")
+
+st.divider()
+
+# ==========================================
+# 2. GENEL PİYASA TARAMASI (ALT BÖLÜM)
+# ==========================================
+st.subheader("🌊 Piyasa Taraması (Balina Avı)")
+
+# --- LİSTELER ---
+bist_listesi = [
+    "HDFGS.IS", # <--- 1 NUMARA
     "THYAO.IS", "ASELS.IS", "GARAN.IS", "SISE.IS", "EREGL.IS", "KCHOL.IS", "AKBNK.IS", 
     "TUPRS.IS", "SASA.IS", "HEKTS.IS", "PETKM.IS", "BIMAS.IS", "EKGYO.IS", "ODAS.IS", 
-    "KONTR.IS", "GUBRF.IS", "FROTO.IS", "TTKOM.IS", "ISCTR.IS", "YKBNK.IS", "SAHOL.IS",
-    "ASTOR.IS", "EUPWR.IS", "GESAN.IS", "SMRTG.IS", "ALFAS.IS", "CANTE.IS", "REEDR.IS",
-    "CVKMD.IS", "KCAER.IS", "OYAKC.IS", "EGEEN.IS", "DOAS.IS", "MGROS.IS", "TOASO.IS"
+    "KONTR.IS", "GUBRF.IS", "FROTO.IS", "TTKOM.IS", "ISCTR.IS", "YKBNK.IS", "SAHOL.IS", 
+    "TCELL.IS", "ENKAI.IS", "VESTL.IS", "ARCLK.IS", "TOASO.IS", "PGSUS.IS", "KOZAL.IS", 
+    "KOZAA.IS", "IPEKE.IS", "TKFEN.IS", "HALKB.IS", "VAKBN.IS", "TSKB.IS", "ALARK.IS", 
+    "TAVHL.IS", "MGROS.IS", "SOKM.IS", "MAVI.IS", "AEFES.IS", "AGHOL.IS", "AKSEN.IS", 
+    "ASTOR.IS", "EUPWR.IS", "GESAN.IS", "SMRTG.IS", "ALFAS.IS", "CANTE.IS", "REEDR.IS", 
+    "CVKMD.IS", "KCAER.IS", "OYAKC.IS", "EGEEN.IS", "DOAS.IS", "BRSAN.IS", "CIMSA.IS", 
+    "DOHOL.IS", "ECILC.IS", "ENJSA.IS", "GLYHO.IS", "GWIND.IS", "ISGYO.IS", "ISMEN.IS", 
+    "KLSER.IS", "KORDS.IS", "KZBGY.IS", "OTKAR.IS", "QUAGR.IS", "SKBNK.IS", "SOKE.IS", 
+    "TRGYO.IS", "TSPOR.IS", "ULKER.IS", "VESBE.IS", "YYLGD.IS", "ZOREN.IS"
 ]
 
-# --- ANALİZ MOTORU ---
-def hisse_analiz_et(symbol):
-    try:
-        # 1 Aylık veri çek (Trendi görmek için)
-        df = yf.download(symbol, period="1mo", interval="1d", progress=False)
-        if hasattr(df.columns, 'levels'): df.columns = df.columns.get_level_values(0)
-        
-        if len(df) < 14: return None # Yetersiz veri
-        
-        son = df.iloc[-1]
-        fiyat = son['Close']
-        
-        # --- 1. PARA GİRİŞ/ÇIKIŞ HESABI (MFI) ---
-        typical_price = (df['High'] + df['Low'] + df['Close']) / 3
-        raw_money = typical_price * df['Volume']
-        
-        pos_flow = []
-        neg_flow = []
-        
-        for i in range(1, len(typical_price)):
-            if typical_price.iloc[i] > typical_price.iloc[i-1]:
-                pos_flow.append(raw_money.iloc[i])
-                neg_flow.append(0)
-            elif typical_price.iloc[i] < typical_price.iloc[i-1]:
-                pos_flow.append(0)
-                neg_flow.append(raw_money.iloc[i])
-            else:
-                pos_flow.append(0)
-                neg_flow.append(0)
-        
-        # Son 14 günün toplamı
-        pos_sum = sum(pos_flow[-14:])
-        neg_sum = sum(neg_flow[-14:])
-        
-        if neg_sum == 0: mfi = 100
-        else:
-            ratio = pos_sum / neg_sum
-            mfi = 100 - (100 / (1 + ratio))
-            
-        # Tahmini Para Giriş Tutarı (Sanal Hesap)
-        net_para_akisi = pos_sum - neg_sum
-        para_durumu_str = f"+{net_para_akisi/1000000:.1f} Milyon TL" if net_para_akisi > 0 else f"{net_para_akisi/1000000:.1f} Milyon TL"
-        
-        # --- 2. AI TAHMİN MOTORU ---
-        sma20 = df['Close'].rolling(20).mean().iloc[-1]
-        
-        puan = 0
-        # Trend Puanı
-        if fiyat > sma20: puan += 1
-        else: puan -= 1
-        
-        # Para Puanı
-        if mfi > 50: puan += 1
-        else: puan -= 1
-        
-        # Karar
-        if puan >= 2:
-            ai_oneri = "YÜKSELİŞ BEKLENİYOR 🚀"
-            ai_class = "yukselir"
-            ai_yorum = "Trend pozitif ve güçlü para girişi var."
-        elif puan <= -2:
-            ai_oneri = "DÜŞÜŞ RİSKİ 🔻"
-            ai_class = "duser"
-            ai_yorum = "Para çıkışı var ve trend desteğin altında."
-        else:
-            ai_oneri = "YATAY / İZLE ⏸️"
-            ai_class = "notr"
-            ai_yorum = "Kararsız bölge. Kırılım beklenmeli."
-            
-        return {
-            "Sembol": symbol.replace(".IS", ""),
-            "Fiyat": fiyat,
-            "MFI": mfi,
-            "ParaYazi": para_durumu_str,
-            "Oneri": ai_oneri,
-            "Class": ai_class,
-            "Yorum": ai_yorum
-        }
+kripto_listesi = [
+    "BTC-USD", "ETH-USD", "BNB-USD", "SOL-USD", "XRP-USD", "DOGE-USD", "ADA-USD", 
+    "AVAX-USD", "SHIB-USD", "DOT-USD", "MATIC-USD", "LTC-USD", "TRX-USD", "LINK-USD", 
+    "ATOM-USD", "FET-USD", "RNDR-USD", "PEPE-USD", "FLOKI-USD", "NEAR-USD", "ARB-USD", 
+    "APT-USD", "SUI-USD", "INJ-USD", "OP-USD", "LDO-USD", "FIL-USD", "HBAR-USD", 
+    "VET-USD", "ICP-USD", "GRT-USD", "MKR-USD", "AAVE-USD", "SNX-USD", "ALGO-USD", 
+    "SAND-USD", "MANA-USD", "WIF-USD", "BONK-USD", "BOME-USD"
+]
 
-    except:
-        return None
-
-# --- ARAYÜZ ---
-if st.button("PİYASAYI ANALİZ ET 🧠", type="primary"):
-    bar = st.progress(0, text="Yapay Zeka Hisseleri Tarıyor...")
+# --- ÖNBELLEKLİ TARAMA ---
+@st.cache_data(ttl=180, show_spinner=False)
+def verileri_getir(liste, piyasa_tipi):
+    sinyaller = []
+    toplam = len(liste)
+    bar = st.progress(0, text=f"{piyasa_tipi} Taranıyor...")
     
-    cols = st.columns(2)
-    
-    for i, sembol in enumerate(hisseler):
-        veri = hisse_analiz_et(sembol)
-        
-        # İlerleme çubuğu
-        bar.progress((i + 1) / len(hisseler))
-        time.sleep(0.05) # Anti-ban beklemesi
-        
-        if veri:
-            col = cols[0] if i % 2 == 0 else cols[1]
+    for i, symbol in enumerate(liste):
+        try:
+            df = yf.download(symbol, period="2d", interval="1h", progress=False)
+            if hasattr(df.columns, 'levels'): df.columns = df.columns.get_level_values(0)
             
-            with col:
-                ozel_style = "hdfgs-ozel" if "HDFGS" in veri['Sembol'] else ""
+            if len(df) > 10:
+                son = df.iloc[-1]
+                hacim_son = son['Volume']
+                hacim_ort = df['Volume'].rolling(20).mean().iloc[-1]
+                kat = hacim_son / hacim_ort if hacim_ort > 0 else 0
+                fiyat = son['Close']
+                degisim = ((fiyat - df['Open'].iloc[-1]) / df['Open'].iloc[-1]) * 100
                 
-                # Bar Rengi
-                bar_renk = "#10b981" if veri['MFI'] > 50 else "#ef4444"
+                durum = None
+                renk = "gray"
                 
-                st.markdown(f"""
-                <div class="analiz-karti {ozel_style}">
-                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
-                        <h3 style="margin:0; color:#e5e7eb;">{veri['Sembol']}</h3>
-                        <span style="font-size:20px; font-weight:bold; color:white;">{veri['Fiyat']:.2f} TL</span>
-                    </div>
-                    
-                    <div style="margin-bottom:10px;">
-                        <span class="etiket {veri['Class']}">{veri['Oneri']}</span>
-                        <span class="etiket" style="background-color:#374151; color:#d1d5db;">MFI: {veri['MFI']:.0f}</span>
-                    </div>
-                    
-                    <div style="font-size:13px; color:#9ca3af; margin-bottom:5px;">
-                        <i>🤖 AI: {veri['Yorum']}</i>
-                    </div>
-                    
-                    <div style="font-size:12px; color:#d1d5db; display:flex; justify-content:space-between;">
-                        <span>Para Akışı Gücü:</span>
-                        <span>{veri['ParaYazi']} (Tahmini)</span>
-                    </div>
-                    <div class="para-bar-bg">
-                        <div class="para-bar-doluluk" style="width: {veri['MFI']}%; background-color: {bar_renk};"></div>
-                    </div>
-                </div>
-                """, unsafe_allow_html=True)
+                if "HDFGS" in symbol:
+                    if kat > 1.2: durum = "HDFGS HAREKETLİ 🦅"; renk = "buy" if degisim > 0 else "sell"
+                    else: durum = "HDFGS SAKİN"; renk = "gray"
+                elif kat > 2.5:
+                    if degisim > 0.5: durum = "WHALE BUY 🚀"; renk = "buy"
+                    elif degisim < -0.5: durum = "WHALE DUMP 🔻"; renk = "sell"
                 
+                if durum:
+                    isim = symbol.replace(".IS", "").replace("-USD", "")
+                    sinyaller.append({"Sembol": isim, "Fiyat": fiyat, "Degisim": degisim, "HacimKat": kat, "Sinyal": durum, "Renk": renk})
+            
+            bar.progress((i + 1) / toplam)
+            time.sleep(0.01)
+        except: continue
+            
     bar.empty()
-    st.success("Tüm Pazar Analiz Edildi!")
-else:
-    st.info("Analizi başlatmak için butona basın.")
+    return sinyaller
+
+# --- TARAMA ARAYÜZÜ ---
+tab1, tab2 = st.tabs(["🏙️ BORSA İSTANBUL", "₿ KRİPTO"])
+zaman = datetime.now().strftime("%H:%M")
+
+with tab1:
+    st.caption(f"Son Güncelleme: {zaman}")
+    sonuclar = verileri_getir(bist_listesi, "BIST")
+    if st.button("🔄 Yenile (BIST)"): st.cache_data.clear(); st.rerun()
+    
+    if sonuclar:
+        cols = st.columns(2)
+        for i, veri in enumerate(sonuclar):
+            with cols[i % 2]:
+                ozel = "hdfgs-ozel" if "HDFGS" in veri['Sembol'] else ""
+                st.markdown(f"""
+                <div class="balina-karti bist-card {ozel}">
+                    <div style="display:flex; justify-content:space-between; align-items:center;">
+                        <div><h4 style="margin:0; color:#e0f2fe;">{veri['Sembol']}</h4><p style="margin:0; font-size:14px;">{veri['Fiyat']:.2f} TL <span style="color:{'#4ade80' if veri['Degisim']>0 else ('#f87171' if veri['Degisim']<0 else 'white')}">(%{veri['Degisim']:.2f})</span></p></div>
+                        <div style="text-align:right;"><div class="signal-box {veri['Renk']}">{veri['Sinyal']}</div><p style="margin:2px 0 0 0; font-size:11px; color:#94a3b8;">Hacim: {veri['HacimKat']:.1f}x</p></div>
+                    </div>
+                </div>""", unsafe_allow_html=True)
+    else: st.info("BIST sakin.")
+
+with tab2:
+    st.caption("Kripto Piyasası")
+    sonuclar_kripto = verileri_getir(kripto_listesi, "KRIPTO")
+    if st.button("🔄 Yenile (Kripto)"): st.cache_data.clear(); st.rerun()
+    
+    if sonuclar_kripto:
+        cols = st.columns(2)
+        for i, veri in enumerate(sonuclar_kripto):
+            with cols[i % 2]:
+                st.markdown(f"""
+                <div class="balina-karti crypto-card">
+                    <div style="display:flex; justify-content:space-between; align-items:center;">
+                        <div><h4 style="margin:0; color:#fef08a;">{veri['Sembol']}</h4><p style="margin:0; font-size:14px;">${veri['Fiyat']:.4f} <span style="color:{'#4ade80' if veri['Degisim']>0 else '#f87171'}">(%{veri['Degisim']:.2f})</span></p></div>
+                        <div style="text-align:right;"><div class="signal-box {veri['Renk']}">{veri['Sinyal']}</div><p style="margin:2px 0 0 0; font-size:11px; color:#94a3b8;">Hacim: {veri['HacimKat']:.1f}x</p></div>
+                    </div>
+                </div>""", unsafe_allow_html=True)
+    else: st.info("Kripto sakin.")
