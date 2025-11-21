@@ -5,3 +5,6 @@ pandas_ta
 openai
 streamlit-lottie
 requests
+graphviz
+gTTS
+Pillow
