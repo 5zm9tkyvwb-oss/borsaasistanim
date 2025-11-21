@@ -1,181 +1,109 @@
 import streamlit as st
+from gtts import gTTS
+import os
+from PIL import Image
+
+# --- SESLİ OKUMA FONKSİYONU ---
+def metni_oku(metin):
+    """Metni sese çevirir ve oynatır"""
+    try:
+        tts = gTTS(text=metin, lang='tr')
+        tts.save("ses.mp3")
+        st.audio("ses.mp3", format="audio/mp3")
+    except Exception as e:
+        st.error("Ses oluşturulurken hata oluştu.")
 
 # --- SAYFA AYARLARI ---
-st.set_page_config(page_title="Engelsiz Haklar Rehberi", layout="centered", page_icon="♿")
+st.set_page_config(page_title="Engelsiz Asistan Pro", page_icon="🦮", layout="centered")
 
-# --- CSS TASARIMI ---
+# --- YÜKSEK KONTRAST TASARIM (Sarı/Siyah - Az Görenler İçin) ---
 st.markdown("""
     <style>
-    .stApp { background-color: #f0f2f6; color: #333; }
-    h1, h2, h3 { color: #2c3e50; text-align: center; }
-    .hak-kutu {
+    .stApp { background-color: #000000; color: #FFD700; }
+    h1, h2, h3, p, label, .stMarkdown { color: #FFD700 !important; font-family: sans-serif; }
+    .stButton>button {
+        width: 100%;
+        height: 80px;
+        background-color: #FFD700;
+        color: black;
+        font-size: 24px;
+        font-weight: bold;
+        border: 3px solid white;
+        border-radius: 15px;
+    }
+    .stButton>button:hover {
         background-color: white;
-        padding: 20px;
-        border-radius: 10px;
-        box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-        margin-bottom: 15px;
-        border-left: 5px solid #3498db;
+        color: black;
     }
-    .maas-kutu {
-        background-color: #e8f6f3;
-        padding: 20px;
-        border-radius: 10px;
-        border: 2px solid #1abc9c;
-        text-align: center;
-    }
-    .uyari-kutu {
-        background-color: #fdf2e9;
-        padding: 15px;
-        border-radius: 10px;
-        border-left: 5px solid #e67e22;
-        font-size: 14px;
-    }
+    .stTextInput>div>div>input { font-size: 20px; }
     </style>
 """, unsafe_allow_html=True)
 
-st.title("♿ Engelsiz Yaşam ve Haklar Rehberi")
-st.caption("Engel oranınıza göre devletin sağladığı tüm hakları anında öğrenin.")
+st.title("🦮 ENGELSİZ ASİSTAN PRO")
+st.write("Görme ve Okuma Zorluğu Çekenler İçin Yapay Zeka Desteği")
 
-# --- SABİT DEĞERLER (2024-2025 Tahmini Güncel Rakamlar) ---
-# Not: Bu rakamlar asgari ücret değiştikçe güncellenmelidir.
-NET_ASGARI_UCRET = 17002  # TL (Varsayılan)
-MUHTAC_SINIRI = NET_ASGARI_UCRET / 3
-BAKIM_MUHTAC_SINIRI = (NET_ASGARI_UCRET * 2) / 3
+# --- MENÜ ---
+secim = st.radio("Ne Yapmak İstersin?", ["📸 Fotoğrafı Anlat (AI Göz)", "📜 Haklarımı Sesli Oku", "🆘 Acil Durum"], horizontal=True)
 
-# --- YAN MENÜ: KİŞİSEL BİLGİLER ---
-with st.sidebar:
-    st.header("📋 Profil Bilgileri")
+# --- MODÜL 1: AI GÖZ (Fotoğraf Analizi) ---
+if secim == "📸 Fotoğrafı Anlat (AI Göz)":
+    st.header("Ne Gördüğümü Anlat")
+    st.info("Bir ilaç kutusu, fatura veya önünüzdeki manzaranın fotoğrafını yükleyin.")
     
-    oran = st.slider("Engel Oranı (%)", 0, 100, 40)
+    uploaded_file = st.file_uploader("Fotoğraf Seçin...", type=["jpg", "png", "jpeg"])
     
-    st.write("---")
-    st.header("💰 Gelir Testi (Maaş İçin)")
-    hane_geliri = st.number_input("Haneye Giren Toplam Aylık Gelir (TL)", value=0, step=500)
-    kisi_sayisi = st.number_input("Hanedeki Kişi Sayısı", value=1, min_value=1)
+    if uploaded_file is not None:
+        image = Image.open(uploaded_file)
+        st.image(image, caption='Yüklenen Fotoğraf', use_column_width=True)
+        
+        if st.button("BU NEDİR? (SESLİ ANLAT) 🔊"):
+            with st.spinner('Görüntü inceleniyor...'):
+                # BURADA NORMALDE OPENAI VISION API KULLANILIR
+                # Şimdilik simülasyon yapıyoruz (Demo olduğu için)
+                
+                ornek_cevap = "Bu fotoğrafta bir ilaç kutusu görünüyor. Üzerinde 'Parol' yazıyor. Ağrı kesici ve ateş düşürücü olarak kullanılır. Günde 2 tabletten fazla alınmaması öneriliyor."
+                
+                st.success("Analiz Tamamlandı:")
+                st.write(f"🗣️ **Asistan:** {ornek_cevap}")
+                metni_oku(ornek_cevap)
+
+# --- MODÜL 2: HAKLARI SESLİ OKU ---
+elif secim == "📜 Haklarımı Sesli Oku":
+    st.header("Haklarınızı Dinleyin")
     
-    st.write("---")
-    rapor_turu = st.checkbox("Raporumda 'Tam Bağımlı' ifadesi var mı?")
-    ortopedik = st.checkbox("Engeliniz Ortopedik mi?")
-
-# --- HESAPLAMA MOTORU ---
-kisi_basi_gelir = hane_geliri / kisi_sayisi
-
-# --- SEKME SİSTEMİ ---
-tab1, tab2, tab3 = st.tabs(["📜 HAKLARIM NELER?", "💸 MAAŞ SORGULA", "🚗 ÖTV & ARAÇ"])
-
-# --- SEKME 1: GENEL HAKLAR ---
-with tab1:
-    st.header(f"%{oran} Engel Oranı İçin Haklar")
+    konu = st.selectbox("Hangi Konuyu Merak Ediyorsun?", 
+                        ["ÖTV İndirimi", "Engelli Maaşı", "Ücretsiz Ulaşım", "Su İndirimi"])
     
-    if oran < 40:
-        st.warning("⚠️ Yasal olarak engelli haklarından yararlanabilmek için rapor oranının en az **%40** olması gerekmektedir.")
-    else:
+    bilgi_metni = ""
+    if konu == "ÖTV İndirimi":
+        bilgi_metni = "Yüzde 90 ve üzeri raporunuz varsa, ÖTV ödemeden araba alabilirsiniz. Eğer engeliniz ortopedik ise oran şartı aranmaz, özel tertibatlı araç alabilirsiniz."
+    elif konu == "Engelli Maaşı":
+        bilgi_metni = "Engelli maaşı alabilmek için, hanedeki kişi başına düşen gelirin asgari ücretin üçte birinden az olması gerekir. Rapor oranınız en az yüzde 40 olmalıdır."
+    elif konu == "Ücretsiz Ulaşım":
+        bilgi_metni = "Şehir içi otobüs, metro ve vapurlara ücretsiz binebilirsiniz. Şehirler arası trenlerde de ücret ödemezsiniz."
+    elif konu == "Su İndirimi":
+        bilgi_metni = "Belediyelerin çoğunda su faturalarında yüzde 50 indirim hakkınız vardır. Bunun için su idaresine raporunuzla başvurmalısınız."
+        
+    st.info(bilgi_metni)
+    
+    if st.button("🔊 SESLİ OKU"):
+        metni_oku(bilgi_metni)
+
+# --- MODÜL 3: ACİL DURUM ---
+elif secim == "🆘 Acil Durum":
+    st.header("Acil Durum Butonu")
+    st.warning("Bu butona basarsanız ekran kırmızı yanıp söner ve sesli uyarı verir (Demo).")
+    
+    if st.button("🚨 YARDIM ÇAĞIR"):
         st.markdown("""
-        <div class="hak-kutu">
-            <h4>🚌 Ücretsiz Ulaşım</h4>
-            <ul>
-                <li>Şehir içi otobüs, metro ve vapurlar <strong>ÜCRETSİZ</strong>.</li>
-                <li>Şehirlerarası trenlerde ve YHT'de <strong>ÜCRETSİZ</strong>.</li>
-                <li>Şehirlerarası otobüslerde <strong>%30 İNDİRİM</strong>.</li>
-                <li>THY uçuşlarında <strong>%20-%25 İNDİRİM</strong>.</li>
-            </ul>
-        </div>
+            <style>
+            .stApp { animation: blinker 1s linear infinite; background-color: red; }
+            @keyframes blinker { 50% { opacity: 0.5; } }
+            </style>
+            <h1 style='text-align:center; font-size:100px;'>YARDIM EDİN!</h1>
         """, unsafe_allow_html=True)
+        metni_oku("Acil durum! Lütfen yardım edin! Konumum paylaşılıyor.")
 
-        st.markdown("""
-        <div class="hak-kutu">
-            <h4>💧 Fatura İndirimleri</h4>
-            <ul>
-                <li>Su Faturası: Belediyeye göre değişmekle birlikte genelde <strong>%50 İNDİRİM</strong>.</li>
-                <li>Digiturk / Türksat / İnternet: Özel <strong>%25 engelli indirimi</strong> tarifeleri.</li>
-            </ul>
-        </div>
-        """, unsafe_allow_html=True)
-
-        st.markdown("""
-        <div class="hak-kutu">
-            <h4>🏛️ Vergi ve İş Hayatı</h4>
-            <ul>
-                <li><strong>EKPSS:</strong> Engelli Kamu Personeli Seçme Sınavı'na girme hakkı.</li>
-                <li><strong>Erken Emeklilik:</strong> Yıpranma payı ile daha erken emeklilik hakkı.</li>
-                <li><strong>Emlak Vergisi:</strong> Tek evi olanlar (200 m² altı) için <strong>MUAFİYET</strong> (Vergi ödemez).</li>
-            </ul>
-        </div>
-        """, unsafe_allow_html=True)
-
-# --- SEKME 2: MAAŞ HESAPLAMA ---
-with tab2:
-    st.header("Maaş Bağlanabilir mi?")
-    
-    col1, col2 = st.columns(2)
-    with col1:
-        st.info(f"Hane Kişi Başı Geliriniz:\n# {kisi_basi_gelir:.2f} TL")
-    with col2:
-        st.warning(f"2022 Maaşı İçin Sınır:\n# {MUHTAC_SINIRI:.2f} TL")
-
-    st.divider()
-
-    # 1. 2022 Engelli Aylığı (Kaymakamlık)
-    st.subheader("1. Engelli Aylığı (2022 Sayılı Kanun)")
-    
-    if oran >= 40 and oran < 70:
-        if kisi_basi_gelir < MUHTAC_SINIRI:
-            st.success("✅ **UYGUN GÖRÜNÜYOR:** Gelir kriteriniz tutuyor. Oranınız %40-69 arası olduğu için **Engelli Aylığı** alabilirsiniz.")
-        else:
-            st.error("❌ **ALAMAZSINIZ:** Hane kişi başı geliriniz sınırı aştığı için maaş bağlanmaz.")
-    elif oran >= 70:
-        if kisi_basi_gelir < MUHTAC_SINIRI:
-            st.success("✅ **UYGUN GÖRÜNÜYOR:** Gelir kriteriniz tutuyor. Oranınız %70+ olduğu için **Başkasının Yardımı Olmaksızın Hayatını Devam Ettiremez Aylığı** (Daha yüksek tutar) alabilirsiniz.")
-        else:
-            st.error("❌ **ALAMAZSINIZ:** Gelir kriteri sınırın üzerinde.")
-    else:
-        st.error("❌ **ALAMAZSINIZ:** Engel oranı %40'ın altında.")
-
-    st.write("")
-    
-    # 2. Evde Bakım Aylığı
-    st.subheader("2. Evde Bakım Maaşı")
-    st.caption(f"Bakım Maaşı Gelir Sınırı: {BAKIM_MUHTAC_SINIRI:.2f} TL")
-    
-    if rapor_turu: # Tam bağımlı ise
-        if kisi_basi_gelir < BAKIM_MUHTAC_SINIRI:
-             st.success("✅ **UYGUN GÖRÜNÜYOR:** Raporunuz 'Tam Bağımlı' ve geliriniz sınırın altında. Bakıcı maaşı bağlanabilir.")
-        else:
-             st.error("❌ **ALAMAZSINIZ:** Raporunuz tutuyor ancak hane geliriniz yüksek.")
-    else:
-        st.warning("⚠️ **RAPOR UYUMSUZ:** Evde bakım maaşı alabilmek için raporda **'Tam Bağımlı'** ifadesi işaretli olmalıdır.")
-
-# --- SEKME 3: ÖTV VE ARAÇ ---
-with tab3:
-    st.header("🚗 Araç Alımında ÖTV Muafiyeti")
-    
-    if oran >= 90:
-        st.success("""
-        ### ✅ ÖTV'siz Araç Alabilirsiniz!
-        * Rapor oranınız %90 ve üzeri olduğu için **hiçbir koşul aranmaksızın** ÖTV (Özel Tüketim Vergisi) ödemeden sıfır araç alabilirsiniz.
-        * Aracı engelli kişinin kendisi kullanmak zorunda değildir (1. derece yakınları kullanabilir).
-        * 5 yıl satmama şartı vardır.
-        """)
-    elif oran >= 40 and ortopedik:
-        st.success("""
-        ### ✅ ÖTV İndirimi Alabilirsiniz (Şartlı)
-        * Oranınız %90 altı olsa bile, engeliniz **ORTOPEDİK** olduğu için ve aracı hareket ettirici özel tertibat (gaz-fren elle kontrol vb.) gerekiyorsa ÖTV'siz araç alabilirsiniz.
-        * **DİKKAT:** Raporunuzda "Sadece hareket ettirici aksamda özel tertibatlı araç kullanması gerekir" ibaresi olmalıdır.
-        * Bu aracı sadece **engelli kişinin kendisi** kullanabilir.
-        """)
-    else:
-        st.error("""
-        ### ❌ ÖTV Muafiyeti Yok
-        * %90 altı oranlarda, eğer engeliniz ortopedik değilse (örneğin işitme, görme, kronik hastalık, zihinsel vb.) maalesef ÖTV indirimli araç alma hakkı bulunmamaktadır.
-        """)
-
-    st.info("💡 **MTV Muafiyeti:** ÖTV'siz alınan araçlar için Motorlu Taşıtlar Vergisi (MTV) de ödenmez.")
-
-# --- YASAL UYARI ---
-st.divider()
-st.markdown("""
-<div class="uyari-kutu">
-    <strong>⚠️ Yasal Uyarı:</strong> Bu uygulama bilgilendirme amaçlıdır. Maaş ve hak kazanımları için son kararı Sosyal Yardımlaşma ve Dayanışma Vakıfları (SYDV) veya ilgili kurumlar verir.
-    Mevzuatlar ve asgari ücret değiştikçe kriterler değişebilir.
-</div>
-""", unsafe_allow_html=True)
+# --- ALT BİLGİ ---
+st.write("---")
+st.caption("Bu uygulama Engelsiz Yaşam için geliştirilmiştir.")
