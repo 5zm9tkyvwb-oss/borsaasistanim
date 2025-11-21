@@ -1,13 +1,13 @@
 import streamlit as st
-from openai import OpenAI
+import time
 
 # --- SAYFA AYARLARI ---
-st.set_page_config(page_title="AI Diyetisyenim", page_icon="🥗", layout="centered")
+st.set_page_config(page_title="Akıllı Diyetisyen (Ücretsiz)", page_icon="🥗", layout="centered")
 
-# --- CSS TASARIMI (Yeşil/Sağlıklı Tema) ---
+# --- CSS TASARIMI ---
 st.markdown("""
     <style>
-    .stApp { background-color: #fdfbf7; color: #2c3e50; }
+    .stApp { background-color: #f4f9f4; color: #2c3e50; }
     h1 { color: #27ae60; text-align: center; font-family: 'Helvetica', sans-serif; }
     .stButton>button {
         width: 100%;
@@ -19,34 +19,37 @@ st.markdown("""
         border: none;
     }
     .stButton>button:hover { background-color: #219150; }
+    
     .sonuc-kutusu {
         background-color: white;
-        padding: 20px;
+        padding: 25px;
         border-radius: 15px;
-        box-shadow: 0 4px 10px rgba(0,0,0,0.1);
-        border-left: 5px solid #27ae60;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        border-left: 6px solid #27ae60;
         margin-top: 20px;
     }
-    .vki-kutusu {
-        text-align: center;
-        padding: 10px;
+    .bilgi-karti {
         background-color: #e8f8f5;
+        padding: 15px;
         border-radius: 10px;
-        margin-bottom: 10px;
+        text-align: center;
         font-weight: bold;
         color: #16a085;
+        margin-bottom: 10px;
+    }
+    .ogun-baslik {
+        color: #d35400;
+        font-size: 20px;
+        font-weight: bold;
+        margin-top: 15px;
+        border-bottom: 1px solid #eee;
+        padding-bottom: 5px;
     }
     </style>
 """, unsafe_allow_html=True)
 
-st.title("🥗 AI Diyetisyenim")
-st.caption("Sana özel, bilimsel ve yapay zeka destekli beslenme programı.")
-
-# --- YAN MENÜ (API KEY) ---
-with st.sidebar:
-    st.header("⚙️ Ayarlar")
-    openai_api_key = st.text_input("OpenAI API Anahtarı", type="password", help="ChatGPT anahtarını buraya yapıştır.")
-    st.info("Anahtarın yoksa sadece VKİ hesaplanır, diyet listesi oluşturulamaz.")
+st.title("🥗 Akıllı Diyetisyen")
+st.caption("Yapay Zeka Yok, Saf Bilim Var. (Anahtar Gerektirmez)")
 
 # --- KULLANICI BİLGİLERİ ---
 col1, col2 = st.columns(2)
@@ -57,93 +60,37 @@ with col1:
 
 with col2:
     cinsiyet = st.selectbox("Cinsiyet", ["Erkek", "Kadın"])
-    aktivite = st.selectbox("Hareket Seviyesi", ["Hareketsiz (Masa başı)", "Az Hareketli (Haftada 1-2 spor)", "Aktif (Haftada 3-5 spor)", "Çok Aktif (Sporcu)"])
-    hedef = st.selectbox("Hedefiniz Nedir?", ["Kilo Vermek", "Kilo Almak", "Kilomu Korumak"])
+    aktivite = st.selectbox("Hareket Seviyesi", ["Hareketsiz (Masa başı)", "Az Hareketli (Haftada 1-2)", "Aktif (Haftada 3-5)", "Sporcu"])
+    hedef = st.selectbox("Hedefiniz", ["Kilo Vermek", "Kilo Almak", "Formu Korumak"])
 
-ozel_durum = st.text_area("Özel Durumlar (İsteğe Bağlı)", placeholder="Örn: Yumurta sevmem, Glutensiz besleniyorum, Şeker hastasıyım...")
+ozel_tercih = st.multiselect("Neleri Yemezsin?", ["Yumurta", "Süt/Peynir", "Et/Tavuk", "Gluten/Ekmek"])
 
 # --- HESAPLAMA MOTORU ---
-def vki_hesapla(kilo, boy):
-    boy_m = boy / 100
-    vki = kilo / (boy_m * boy_m)
-    if vki < 18.5: durum = "Zayıf"
-    elif vki < 25: durum = "Normal"
-    elif vki < 30: durum = "Fazla Kilolu"
-    else: durum = "Obez"
-    return vki, durum
-
-def kalori_hesapla(cinsiyet, kilo, boy, yas, aktivite):
-    # Harris-Benedict Formülü
+def hesapla_ve_olustur():
+    # 1. Bazal Metabolizma (Mifflin-St Jeor)
     if cinsiyet == "Erkek":
-        bmr = 88.36 + (13.4 * kilo) + (4.8 * boy) - (5.7 * yas)
+        bmr = (10 * kilo) + (6.25 * boy) - (5 * yas) + 5
     else:
-        bmr = 447.6 + (9.2 * kilo) + (3.1 * boy) - (4.3 * yas)
+        bmr = (10 * kilo) + (6.25 * boy) - (5 * yas) - 161
     
-    # Aktivite Çarpanı
-    carpanlar = {
-        "Hareketsiz (Masa başı)": 1.2,
-        "Az Hareketli (Haftada 1-2 spor)": 1.375,
-        "Aktif (Haftada 3-5 spor)": 1.55,
-        "Çok Aktif (Sporcu)": 1.725
-    }
-    
+    # 2. Aktivite Çarpanı
+    carpanlar = {"Hareketsiz (Masa başı)": 1.2, "Az Hareketli (Haftada 1-2)": 1.375, "Aktif (Haftada 3-5)": 1.55, "Sporcu": 1.725}
     gunluk_kalori = bmr * carpanlar[aktivite]
-    return int(gunluk_kalori)
-
-# --- BUTON VE İŞLEM ---
-if st.button("Diyet Listemi Oluştur 📝"):
-    # 1. Temel Hesaplamalar
-    vki, durum = vki_hesapla(kilo, boy)
-    bazal_kalori = kalori_hesapla(cinsiyet, kilo, boy, yas, aktivite)
     
-    # Hedefe Göre Kalori Ayarı
-    hedef_kalori = bazal_kalori
-    if hedef == "Kilo Vermek":
-        hedef_kalori -= 500 # Açık oluştur
-    elif hedef == "Kilo Almak":
-        hedef_kalori += 400 # Fazla al
-        
-    # Ekrana Yazdır
-    st.markdown("---")
-    col_a, col_b = st.columns(2)
-    with col_a:
-        st.markdown(f"<div class='vki-kutusu'>Vücut Kitle İndeksi: {vki:.1f}<br>({durum})</div>", unsafe_allow_html=True)
-    with col_b:
-        st.markdown(f"<div class='vki-kutusu'>Günlük Hedef Kalori:<br>{hedef_kalori} kcal</div>", unsafe_allow_html=True)
+    # 3. Hedef Ayarı
+    if hedef == "Kilo Vermek": hedef_kalori = gunluk_kalori - 500
+    elif hedef == "Kilo Almak": hedef_kalori = gunluk_kalori + 400
+    else: hedef_kalori = gunluk_kalori
+    
+    # 4. VKİ
+    vki = kilo / ((boy/100)**2)
+    vki_durum = "Normal"
+    if vki > 25: vki_durum = "Fazla Kilolu"
+    elif vki > 30: vki_durum = "Obez"
+    elif vki < 18.5: vki_durum = "Zayıf"
 
-    # 2. Yapay Zeka Diyet Listesi
-    if not openai_api_key:
-        st.warning("⚠️ Yapay zeka listesi için sol menüden API anahtarı girmelisiniz. Yukarıdaki veriler matematiksel hesaptır.")
-    else:
-        try:
-            client = OpenAI(api_key=openai_api_key)
-            
-            prompt = f"""
-            Sen uzman bir diyetisyensin. Aşağıdaki kişiye özel 1 günlük örnek diyet listesi hazırla.
-            
-            Kişi Bilgileri:
-            - Yaş: {yas}, Cinsiyet: {cinsiyet}, Kilo: {kilo}, Boy: {boy}
-            - Hedef: {hedef} (Günlük alması gereken kalori yaklaşık {hedef_kalori} kcal olmalı)
-            - Özel Durumlar/Tercihler: {ozel_durum if ozel_durum else "Yok"}
-            
-            Lütfen çıktıyı şu formatta ver:
-            1. **Sabah:** (Menü ve yaklaşık kalori)
-            2. **Ara Öğün:** (Opsiyonel)
-            3. **Öğle:** (Menü ve yaklaşık kalori)
-            4. **Ara Öğün:**
-            5. **Akşam:**
-            
-            En alta da bu kişiye 3 tane önemli beslenme tavsiyesi ekle. Samimi ve motive edici bir dil kullan.
-            """
-            
-            with st.spinner('Yapay zeka sana özel menüyü hazırlıyor... 🍳'):
-                response = client.chat.completions.create(
-                    model="gpt-4o",
-                    messages=[{"role": "user", "content": prompt}]
-                )
-                diyet_listesi = response.choices[0].message.content
-                
-                st.markdown(f"<div class='sonuc-kutusu'>{diyet_listesi}</div>", unsafe_allow_html=True)
-                
-        except Exception as e:
-            st.error(f"Bir hata oluştu: {e}")
+    return int(hedef_kalori), vki, vki_durum
+
+# --- DİYET LİSTESİ OLUŞTURUCU (Algoritmik) ---
+def liste_yaz(kalori, tercihler):
+    sabah = "2 Haşlanmış Yumurta, 1 dilim peynir, 5 zeytin, yeşillik, 1 dilim tam buğday ek
