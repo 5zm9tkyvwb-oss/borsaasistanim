@@ -2,7 +2,7 @@ import streamlit as st
 import yfinance as yf
 import pandas as pd
 import time
-import random
+import plotly.graph_objects as go
 from datetime import datetime
 
 # --- SAYFA AYARLARI ---
@@ -11,6 +11,8 @@ st.set_page_config(page_title="Pala ile İyi Tahtalar", layout="wide", page_icon
 # --- GİRİŞ KONTROLÜ ---
 if 'giris_yapildi' not in st.session_state:
     st.session_state.giris_yapildi = False
+if 'secilen_hisse' not in st.session_state:
+    st.session_state.secilen_hisse = None
 
 # ==========================================
 # 1. GİRİŞ EKRANI
@@ -30,7 +32,7 @@ def login_ekrani():
 
     st.markdown('<div class="biyik-logo">🥸</div>', unsafe_allow_html=True)
     st.markdown('<div class="pala-title">PALA İLE İYİ TAHTALAR</div>', unsafe_allow_html=True)
-    st.markdown("<div class='vip-card'><h2>⚜️ VIP GİRİŞ BİLETİ</h2><p>Destek, Direnç, Kırılım ve HDFGS Özel Takibi.</p><div class='price-tag'>$500</div><p style='color:#FFD700; font-weight:bold;'>LIFETIME ACCESS</p></div>", unsafe_allow_html=True)
+    st.markdown("<div class='vip-card'><h2>⚜️ VIP GİRİŞ BİLETİ</h2><p>Grafik, Analiz, Kırılım ve HDFGS Özel Takibi.</p><div class='price-tag'>$500</div><p style='color:#FFD700; font-weight:bold;'>LIFETIME ACCESS</p></div>", unsafe_allow_html=True)
     st.write("")
     
     col1, col2 = st.columns(2)
@@ -51,40 +53,87 @@ def login_ekrani():
                     st.error("Hatalı Şifre!")
 
 # ==========================================
-# 2. ANA UYGULAMA
+# 2. GRAFİK ÇİZME FONKSİYONU
+# ==========================================
+def grafik_ciz(symbol):
+    try:
+        # Hissenin son 6 aylık verisini al
+        df = yf.download(symbol, period="6mo", interval="1d", progress=False)
+        if hasattr(df.columns, 'levels'): df.columns = df.columns.get_level_values(0)
+        
+        if not df.empty:
+            # Pivot / Destek / Direnç Hesabı (Son Kapanışa Göre)
+            last = df.iloc[-1]
+            prev = df.iloc[-2]
+            
+            pivot = (prev['High'] + prev['Low'] + prev['Close']) / 3
+            r1 = (2 * pivot) - prev['Low']
+            s1 = (2 * pivot) - prev['High']
+            
+            # Grafik Oluştur
+            fig = go.Figure()
+            
+            # Mum Grafiği
+            fig.add_trace(go.Candlestick(x=df.index, open=df['Open'], high=df['High'], low=df['Low'], close=df['Close'], name="Fiyat"))
+            
+            # Destek ve Direnç Çizgileri
+            fig.add_hline(y=r1, line_dash="dash", line_color="red", annotation_text=f"DİRENÇ: {r1:.2f}")
+            fig.add_hline(y=s1, line_dash="dash", line_color="green", annotation_text=f"DESTEK: {s1:.2f}")
+            
+            fig.update_layout(title=f"{symbol} Detaylı Analiz", template="plotly_dark", height=500, xaxis_rangeslider_visible=False)
+            
+            return fig
+    except:
+        return None
+
+# ==========================================
+# 3. ANA UYGULAMA
 # ==========================================
 def ana_uygulama():
     st.markdown("""
         <style>
         .stApp { background-color: #0a0e17; color: white; }
         .pala-sticker { position: fixed; top: 10px; right: 10px; background: linear-gradient(45deg, #FFD700, #FFA500); color: black; padding: 8px 15px; border-radius: 20px; border: 3px solid #000; text-align: center; font-weight: bold; z-index: 9999; box-shadow: 0 5px 15px rgba(0,0,0,0.5); transform: rotate(5deg); }
-        .balina-karti { padding: 15px; border-radius: 15px; margin-bottom: 10px; border: 1px solid #374151; position: relative; overflow: hidden; }
+        .balina-karti { padding: 10px; border-radius: 12px; margin-bottom: 10px; border: 1px solid #374151; position: relative; }
         
-        .bist-card { background: linear-gradient(90deg, #0f2027 0%, #2c5364 100%); border-left: 5px solid #38bdf8; }
-        .crypto-card { background: linear-gradient(90deg, #201c05 0%, #423808 100%); border-left: 5px solid #facc15; }
+        .bist-card { background: linear-gradient(90deg, #0f2027 0%, #2c5364 100%); border-left: 4px solid #38bdf8; }
+        .crypto-card { background: linear-gradient(90deg, #201c05 0%, #423808 100%); border-left: 4px solid #facc15; }
         
-        .signal-box { padding: 5px 10px; border-radius: 6px; font-weight: bold; font-size: 13px; display: inline-block; }
-        .buy { background-color: #059669; color: white; box-shadow: 0 0 10px #059669; }
-        .sell { background-color: #dc2626; color: white; box-shadow: 0 0 10px #dc2626; }
-        .breakout { background-color: #7c3aed; color: white; box-shadow: 0 0 10px #8b5cf6; animation: flash 1s infinite; }
+        .signal-box { padding: 3px 8px; border-radius: 4px; font-weight: bold; font-size: 11px; display: inline-block; }
+        .buy { background-color: #059669; color: white; }
+        .sell { background-color: #dc2626; color: white; }
+        .breakout { background-color: #7c3aed; color: white; animation: flash 1s infinite; }
         
-        .seviye-kutu { display: flex; justify-content: space-between; font-size: 12px; margin-top: 10px; background: rgba(0,0,0,0.4); padding: 8px; border-radius: 8px; border-top: 1px solid rgba(255,255,255,0.1); }
-        .pala-yorum { margin-top: 8px; font-style: italic; color: #FFD700; font-size: 13px; font-weight: bold; border-top: 1px solid rgba(255,255,255,0.1); padding-top: 5px; }
+        .seviye-kutu { display: flex; justify-content: space-between; font-size: 11px; margin-top: 5px; background: rgba(0,0,0,0.4); padding: 5px; border-radius: 5px; }
+        
+        .stButton button { width: 100%; border-radius: 8px; margin-top: 5px; font-weight: bold; border: 1px solid #555; }
+        .stButton button:hover { border-color: #FFD700; color: #FFD700; }
         
         .hdfgs-ozel { border: 2px solid #FFD700; box-shadow: 0 0 20px #FFD700; animation: pulse 1.5s infinite; }
-        
-        @keyframes pulse { 0% { box-shadow: 0 0 5px #FFD700; } 50% { box-shadow: 0 0 25px #FFA500; } 100% { box-shadow: 0 0 5px #FFD700; } }
-        @keyframes flash { 0% { opacity: 1; } 50% { opacity: 0.5; } 100% { opacity: 1; } }
+        @keyframes pulse { 0% { box-shadow: 0 0 5px #FFD700; } 50% { box-shadow: 0 0 20px #FFA500; } 100% { box-shadow: 0 0 5px #FFD700; } }
         </style>
         <div class="pala-sticker"><span style="font-size:30px">🥸</span><br>İYİ TAHTALAR</div>
     """, unsafe_allow_html=True)
 
-    if st.button("ÇIKIŞ"):
+    if st.button("ÇIKIŞ YAP"):
         st.session_state.giris_yapildi = False
         st.rerun()
 
     st.title("🥸 PALA İLE İYİ TAHTALAR")
-    st.caption("HDFGS • DESTEK/DİRENÇ • TOP 20")
+
+    # --- GRAFİK BÖLÜMÜ (Eğer bir hisse seçildiyse burada açılır) ---
+    if st.session_state.secilen_hisse:
+        st.info(f"📈 {st.session_state.secilen_hisse} Grafiği İnceleniyor...")
+        fig = grafik_ciz(st.session_state.secilen_hisse)
+        if fig:
+            st.plotly_chart(fig, use_container_width=True)
+        else:
+            st.error("Grafik çizilemedi.")
+            
+        if st.button("Grafiği Kapat X", type="secondary"):
+            st.session_state.secilen_hisse = None
+            st.rerun()
+        st.divider()
 
     # --- LİSTELER ---
     bist_listesi = [
@@ -118,13 +167,6 @@ def ana_uygulama():
 
     kripto_listesi = ["BTC-USD", "ETH-USD", "BNB-USD", "SOL-USD", "XRP-USD", "DOGE-USD", "ADA-USD", "AVAX-USD", "SHIB-USD", "DOT-USD", "MATIC-USD", "LTC-USD", "TRX-USD", "LINK-USD", "ATOM-USD", "FET-USD", "RNDR-USD", "PEPE-USD", "FLOKI-USD", "NEAR-USD", "ARB-USD", "APT-USD", "SUI-USD", "INJ-USD", "OP-USD", "LDO-USD", "FIL-USD", "HBAR-USD", "VET-USD", "ICP-USD", "GRT-USD", "MKR-USD", "AAVE-USD", "SNX-USD", "ALGO-USD", "SAND-USD", "MANA-USD", "WIF-USD", "BONK-USD", "BOME-USD"]
 
-    # --- PALA SÖZLERİ ---
-    laf_sok = [
-        "Tahtacı masaya vurdu! 👊", "Roketler ateşlendi 🚀", "Para şelalesi akıyor 💸", 
-        "Balina ağzını açtı 🐋", "Bu tahta yanıyor 🔥", "Pala iş başında 🥸", 
-        "Malı topluyorlar sessizce...", "Kemerleri bağla uçuş var ✈️"
-    ]
-
     # --- TARAMA MOTORU ---
     @st.cache_data(ttl=180, show_spinner=False)
     def verileri_getir(liste, piyasa_tipi):
@@ -134,65 +176,36 @@ def ana_uygulama():
         
         for i, symbol in enumerate(liste):
             try:
-                # Pivot hesabı için 3 günlük veri (Dün ve Bugün)
                 df = yf.download(symbol, period="3d", interval="1h", progress=False)
                 if hasattr(df.columns, 'levels'): df.columns = df.columns.get_level_values(0)
                 
                 if len(df) > 10:
                     son = df.iloc[-1]
-                    
-                    # --- DESTEK / DİRENÇ HESABI (PİVOT) ---
-                    # Yaklaşık "dün" diyebileceğimiz bir periyodu baz alıyoruz
-                    prev = df.iloc[-15] # 15 saat önce (Dünkü seans)
-                    
+                    prev = df.iloc[-15]
                     pivot = (prev['High'] + prev['Low'] + prev['Close']) / 3
-                    r1 = (2 * pivot) - prev['Low'] # Direnç
-                    s1 = (2 * pivot) - prev['High'] # Destek
+                    r1 = (2 * pivot) - prev['Low']
+                    s1 = (2 * pivot) - prev['High']
                     
                     hacim_son = son['Volume']
                     hacim_ort = df['Volume'].rolling(20).mean().iloc[-1]
                     kat = hacim_son / hacim_ort if hacim_ort > 0 else 0
-                    
                     fiyat = son['Close']
                     degisim = ((fiyat - df['Open'].iloc[-1]) / df['Open'].iloc[-1]) * 100
                     
-                    delta = df['Close'].diff(); gain = delta.where(delta>0,0).rolling(14).mean(); loss = (-delta.where(delta<0,0)).rolling(14).mean(); rs=gain/loss; rsi=100-(100/(1+rs)).iloc[-1]
-                    
                     durum = None; renk = "gray"; aciklama = ""
-                    pala_yorumu = ""
-                    
-                    # KIRILIM KONTROLÜ
                     kirilim = ""
                     if fiyat > r1: kirilim = "DİRENÇ KIRILDI 💥"
                     elif fiyat < s1: kirilim = "DESTEK KIRILDI 🩸"
                     
-                    # HDFGS KURALI
                     if "HDFGS" in symbol:
-                        if kat > 1.2: durum = "HDFGS HAREKETLİ 🦅"; renk = "buy" if degisim>0 else "sell"; aciklama = "Anlık Hacim"; pala_yorumu = "Bizim oğlan hareketlendi, takipte kal!"
-                        else: durum = "HDFGS SAKİN"; aciklama = "Takipte..."; pala_yorumu = "Şu an dinleniyor, güç topluyor."
+                        if kat > 1.2: durum = "HDFGS HAREKETLİ 🦅"; renk = "buy" if degisim>0 else "sell"; aciklama = "Hacim Var!"
+                        else: durum = "HDFGS SAKİN"; aciklama = "Takipte..."
                         oncelik = 999
-                    
-                    # DİĞERLERİ
                     elif kat > 2.5 or (kat > 1.5 and kirilim != ""):
-                        if degisim > 0.5: 
-                            durum = "BALİNA GİRDİ 🚀"
-                            renk = "buy" if kirilim == "" else "breakout"
-                            aciklama = f"Hacim {kat:.1f}x"
-                            pala_yorumu = random.choice(laf_sok)
-                            if kirilim: pala_yorumu = f"{kirilim} - {pala_yorumu}"
-                        elif degisim < -0.5: 
-                            durum = "BALİNA ÇIKTI 🔻"
-                            renk = "sell"
-                            aciklama = "Yüklü Satış"
-                            pala_yorumu = "Dikkat et, mal boşaltıyorlar!"
+                        if degisim > 0.5: durum = "BALİNA GİRDİ 🚀"; renk = "buy" if kirilim == "" else "breakout"; aciklama = f"Hacim {kat:.1f}x"
+                        elif degisim < -0.5: durum = "BALİNA ÇIKTI 🔻"; renk = "sell"; aciklama = "Yüklü Satış"
                         oncelik = kat
-                    
-                    elif rsi < 35 and kat > 1.2:
-                        durum = "SİNSİ TOPLAMA 🕵️"
-                        renk = "future"
-                        aciklama = "Dipte Hareket"
-                        pala_yorumu = "Fiyat dipte ama birileri alıyor..."
-                        oncelik = 50
+                        if kirilim: aciklama += f" | {kirilim}"
 
                     if durum:
                         isim = symbol.replace(".IS", "").replace("-USD", "")
@@ -200,14 +213,12 @@ def ana_uygulama():
                             "Sembol": isim, "Fiyat": fiyat, "Degisim": degisim, 
                             "HacimKat": kat, "Sinyal": durum, "Renk": renk, 
                             "Aciklama": aciklama, "Oncelik": oncelik,
-                            "Destek": s1, "Direnc": r1, "Yorum": pala_yorumu
+                            "Destek": s1, "Direnc": r1, "Kod": symbol
                         })
                 
                 bar.progress((i + 1) / toplam); time.sleep(0.01)
             except: continue
         bar.empty()
-        
-        # TOP 20 SIRALAMA
         bulunanlar = sorted(bulunanlar, key=lambda x: x['Oncelik'], reverse=True)
         return bulunanlar[:20]
 
@@ -227,7 +238,7 @@ def ana_uygulama():
                         <div style="display:flex; justify-content:space-between; align-items:center;">
                             <div>
                                 <h4 style="margin:0; color:#e0f2fe;">{veri['Sembol']}</h4>
-                                <p style="margin:0; font-size:16px; font-weight:bold;">{veri['Fiyat']:.2f} TL <span style="color:{'#4ade80' if veri['Degisim']>0 else ('#f87171' if veri['Degisim']<0 else 'white')}">(%{veri['Degisim']:.2f})</span></p>
+                                <p style="margin:0; font-size:14px;">{veri['Fiyat']:.2f} TL <span style="color:{'#4ade80' if veri['Degisim']>0 else ('#f87171' if veri['Degisim']<0 else 'white')}">(%{veri['Degisim']:.2f})</span></p>
                             </div>
                             <div style="text-align:right;">
                                 <div class="signal-box {veri['Renk']}">{veri['Sinyal']}</div>
@@ -238,8 +249,13 @@ def ana_uygulama():
                             <span style="color:#4ade80;">🛡️ S: {veri['Destek']:.2f}</span>
                             <span style="color:#f87171;">🧱 R: {veri['Direnc']:.2f}</span>
                         </div>
-                        <div class="pala-yorum">💬 {veri['Yorum']}</div>
                     </div>""", unsafe_allow_html=True)
+                    
+                    # BUTON (Kartın Altına)
+                    if st.button(f"GRAFİK AÇ ({veri['Sembol']}) 📈", key=f"btn_{veri['Sembol']}"):
+                        st.session_state.secilen_hisse = veri['Kod']
+                        st.rerun()
+                        
         else: st.info("Pala şu an çay içiyor, tahtalar sakin.")
 
     with tab2:
@@ -254,7 +270,7 @@ def ana_uygulama():
                         <div style="display:flex; justify-content:space-between; align-items:center;">
                             <div>
                                 <h4 style="margin:0; color:#fef08a;">{veri['Sembol']}</h4>
-                                <p style="margin:0; font-size:16px; font-weight:bold;">${veri['Fiyat']:.4f} <span style="color:{'#4ade80' if veri['Degisim']>0 else '#f87171'}">(%{veri['Degisim']:.2f})</span></p>
+                                <p style="margin:0; font-size:14px;">${veri['Fiyat']:.4f} <span style="color:{'#4ade80' if veri['Degisim']>0 else '#f87171'}">(%{veri['Degisim']:.2f})</span></p>
                             </div>
                             <div style="text-align:right;">
                                 <div class="signal-box {veri['Renk']}">{veri['Sinyal']}</div>
@@ -265,13 +281,13 @@ def ana_uygulama():
                             <span style="color:#4ade80;">🛡️ S: {veri['Destek']:.4f}</span>
                             <span style="color:#f87171;">🧱 R: {veri['Direnc']:.4f}</span>
                         </div>
-                        <div class="pala-yorum">💬 {veri['Yorum']}</div>
                     </div>""", unsafe_allow_html=True)
+                    
+                    if st.button(f"GRAFİK AÇ ({veri['Sembol']}) 📈", key=f"btn_cr_{veri['Sembol']}"):
+                        st.session_state.secilen_hisse = veri['Kod']
+                        st.rerun()
         else: st.info("Kripto tarafı sakin.")
 
-# ==========================================
-# ANA KONTROL
-# ==========================================
 if st.session_state.giris_yapildi:
     ana_uygulama()
 else:
