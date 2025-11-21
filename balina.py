@@ -1,4 +1,3 @@
-
 import streamlit as st
 import yfinance as yf
 import pandas as pd
@@ -20,7 +19,7 @@ def save_db(data):
 
 def load_db():
     if not os.path.exists(DB_FILE):
-        # Dosya yoksa varsayılanı oluştur
+        # Varsayılan Admin Hesabı
         default_db = {
             "admin": {"sifre": "pala500", "isim": "Büyük Patron", "onay": True, "rol": "admin", "mesajlar": []}
         }
@@ -91,9 +90,45 @@ def admin_dashboard():
                     st.info(f"👤 **{k}:** {msg}")
 
 # ==========================================
-# 2. ANA UYGULAMA (BALİNA)
+# 2. ÖDEME EKRANI
 # ==========================================
-def main_app():
+def payment_screen():
+    st.markdown("<h1 style='text-align:center; color:#FFD700;'>🔒 HESAP ONAY BEKLİYOR</h1>", unsafe_allow_html=True)
+    
+    # VIP Kart
+    st.markdown("""
+    <div style="background: linear-gradient(135deg, #1a1a1a 0%, #000000 100%); border: 3px solid #FFD700; border-radius: 20px; padding: 30px; text-align: center; box-shadow: 0 0 30px rgba(255, 215, 0, 0.2);">
+        <h2>ÜYELİK ÜCRETİ: $500</h2>
+        <p>Pala Balina Savar sistemine erişmek için ödeme yapmanız gerekmektedir.</p>
+    </div>
+    """, unsafe_allow_html=True)
+    
+    col1, col2 = st.columns(2)
+    with col1:
+        st.subheader("💳 Ödeme Bilgileri")
+        st.warning("Lütfen ödemeyi yapıp dekont gönderin.")
+        st.code("USDT (TRC20): TXaBCdef1234567890...")
+        st.code("IBAN: TR12 0000 ... (Pala Yazılım)")
+        
+    with col2:
+        st.subheader("💬 Bildirim Gönder")
+        user_msg = st.text_area("Mesajınız (Dekont no vb.)")
+        if st.button("BİLDİRİM GÖNDER 📨"):
+            kullanici = st.session_state.login_user
+            db = st.session_state.db
+            if "mesajlar" not in db[kullanici]: db[kullanici]["mesajlar"] = []
+            db[kullanici]["mesajlar"].append(f"[{datetime.now().strftime('%H:%M')}] {user_msg}")
+            save_db(db)
+            st.success("Admin'e iletildi! Onaylanınca giriş yapabileceksiniz.")
+            
+    if st.button("Çıkış Yap"):
+        st.session_state.login_user = None
+        st.rerun()
+
+# ==========================================
+# 3. ANA UYGULAMA (DÜZELTİLEN KISIM)
+# ==========================================
+def ana_uygulama():
     # --- CSS ---
     st.markdown("""
         <style>
@@ -217,35 +252,6 @@ def main_app():
         else: st.info("Kripto sakin.")
 
 # ==========================================
-# 4. ÖDEME EKRANI (ONAYSIZLAR İÇİN)
-# ==========================================
-def payment_screen():
-    st.markdown("<h1 style='text-align:center; color:#FFD700;'>🔒 HESAP ONAY BEKLİYOR</h1>", unsafe_allow_html=True)
-    st.markdown("<div class='vip-card'><h2>ÜYELİK ÜCRETİ: $500</h2><p>Pala Balina Savar sistemine erişmek için ödeme yapmanız gerekmektedir.</p></div>", unsafe_allow_html=True)
-    
-    col1, col2 = st.columns(2)
-    with col1:
-        st.subheader("💳 Ödeme Bilgileri")
-        st.warning("Lütfen ödemeyi yapıp dekont gönderin.")
-        st.code("USDT (TRC20): TXaBCdef1234567890...")
-        st.code("IBAN: TR12 0000 ... (Pala Yazılım)")
-        
-    with col2:
-        st.subheader("💬 Bildirim Gönder")
-        user_msg = st.text_area("Mesajınız (Dekont no vb.)")
-        if st.button("BİLDİRİM GÖNDER 📨"):
-            kullanici = st.session_state.login_user
-            db = st.session_state.db
-            if "mesajlar" not in db[kullanici]: db[kullanici]["mesajlar"] = []
-            db[kullanici]["mesajlar"].append(f"[{datetime.now().strftime('%H:%M')}] {user_msg}")
-            save_db(db)
-            st.success("Admin'e iletildi! Onaylanınca giriş yapabileceksiniz.")
-            
-    if st.button("Çıkış Yap"):
-        st.session_state.login_user = None
-        st.rerun()
-
-# ==========================================
 # 5. LOGIN / REGISTER EKRANI
 # ==========================================
 def login_page():
@@ -261,14 +267,11 @@ def login_page():
         kullanici = st.text_input("Kullanıcı Adı")
         sifre = st.text_input("Şifre", type="password")
         
-        # --- ACİL DURUM SIFIRLAMA BUTONU ---
-        # Eğer veritabanı bozulursa buna basarak admini geri getirebilirsin
         if st.checkbox("Veritabanını Sıfırla (Sadece Hata Alırsan Kullan)"):
             if st.button("SİSTEMİ ONAR 🛠️"):
                 st.session_state.db = {"admin": {"sifre": "pala500", "isim": "Büyük Patron", "onay": True, "rol": "admin", "mesajlar": []}}
                 save_db(st.session_state.db)
                 st.success("Sistem onarıldı! Admin ile girebilirsin.")
-        # ------------------------------------
 
         if st.button("GİRİŞ 🚀"):
             db = st.session_state.db
@@ -297,20 +300,20 @@ def login_page():
                 st.warning("Alanları doldurun.")
 
 # ==========================================
-# ROUTER (YÖNLENDİRİCİ)
+# ROUTER
 # ==========================================
 if st.session_state.login_user is None:
     login_page()
 else:
     user = st.session_state.login_user
-    if user in st.session_state.db: # Kullanıcı veritabanında var mı kontrolü
+    if user in st.session_state.db:
         user_data = st.session_state.db[user]
         if user_data.get('rol') == 'admin':
-            ana_uygulama() # Admin direkt girer
+            ana_uygulama()
         elif user_data.get('onay'):
-            ana_uygulama() # Onaylı üye girer
+            ana_uygulama()
         else:
-            payment_screen() # Onaysız üye ödeme ekranına
+            payment_screen()
     else:
-        st.session_state.login_user = None # Hata varsa çıkış yap
+        st.session_state.login_user = None
         st.rerun()
