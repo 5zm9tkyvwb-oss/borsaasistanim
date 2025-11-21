@@ -8,3 +8,4 @@ requests
 graphviz
 gTTS
 Pillow
+plotly
