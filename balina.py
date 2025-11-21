@@ -290,4 +290,80 @@ def ana_uygulama():
                     if st.button(f"GRAFİK AÇ ({veri['Sembol']}) 📈", key=f"btn_{veri['Sembol']}"): st.session_state.secilen_hisse = veri['Kod']; st.rerun()
         else: st.info("Pala şu an çay içiyor.")
     with tab2:
-        if st.
+        if st.button("COINLERİ TARA 📡", key="kripto_btn"): st.cache_data.clear(); st.rerun()
+        sonuclar_kripto = verileri_getir(kripto_listesi, "KRIPTO")
+        if sonuclar_kripto:
+            cols = st.columns(2)
+            for i, veri in enumerate(sonuclar_kripto):
+                with cols[i % 2]:
+                    st.markdown(f"""<div class="balina-karti crypto-card"><div style="display:flex; justify-content:space-between; align-items:center;"><div><h4 style="margin:0; color:#fef08a;">{veri['Sembol']}</h4><p style="margin:0; font-size:14px;">${veri['Fiyat']:.4f} <span style="color:{'#4ade80' if veri['Degisim']>0 else '#f87171'}">(%{veri['Degisim']:.2f})</span></p></div><div style="text-align:right;"><div class="signal-box {veri['Renk']}">{veri['Sinyal']}</div><p style="margin:2px 0 0 0; font-size:10px; color:#94a3b8;">{veri['Aciklama']}</p></div></div><div class="seviye-kutu"><span style="color:#4ade80;">🛡️ S: {veri['Destek']:.4f}</span><span style="color:#f87171;">🧱 R: {veri['Direnc']:.4f}</span></div></div>""", unsafe_allow_html=True)
+                    if st.button(f"GRAFİK AÇ ({veri['Sembol']}) 📈", key=f"btn_cr_{veri['Sembol']}"): st.session_state.secilen_hisse = veri['Kod']; st.rerun()
+        else: st.info("Kripto sakin.")
+
+# ==========================================
+# 5. GİRİŞ / KAYIT SAYFALARI
+# ==========================================
+def login_page():
+    st.markdown("""<div style="text-align:center;"><h1 style="color:#FFD700; font-size: 60px;">🥸 PALA GİRİŞ</h1></div>""", unsafe_allow_html=True)
+    
+    tab1, tab2 = st.tabs(["GİRİŞ YAP", "KAYIT OL (Üye Ol)"])
+    
+    with tab1:
+        kullanici = st.text_input("Kullanıcı Adı")
+        sifre = st.text_input("Şifre", type="password")
+        
+        if st.checkbox("Sistem Başlatma (Sadece İlk Sefer)"):
+            if st.button("ADMİNİ OLUŞTUR 🛠️"):
+                st.session_state.db = {"admin": {"sifre": "pala500", "isim": "Büyük Patron", "onay": True, "rol": "admin", "mesajlar": []}}
+                save_db(st.session_state.db)
+                st.success("Admin oluşturuldu! Kullanıcı: admin / Şifre: pala500")
+
+        if st.button("GİRİŞ 🚀"):
+            db = load_db()
+            if kullanici in db and db[kullanici]['sifre'] == sifre:
+                st.session_state.login_user = kullanici
+                st.success("Giriş Başarılı!")
+                time.sleep(0.5)
+                st.rerun()
+            else:
+                st.error("Hatalı Kullanıcı Adı veya Şifre!")
+
+    with tab2:
+        yeni_kul = st.text_input("Kullanıcı Adı (Nick)")
+        yeni_isim = st.text_input("Adınız Soyadınız")
+        yeni_sifre = st.text_input("Yeni Şifre", type="password")
+        if st.button("KAYIT OL 📝"):
+            db = load_db()
+            if yeni_kul in db:
+                st.error("Bu isim alınmış!")
+            elif yeni_kul and yeni_sifre:
+                db[yeni_kul] = {"sifre": yeni_sifre, "isim": yeni_isim, "onay": False, "rol": "user", "mesajlar": []}
+                save_db(db)
+                st.success("Kayıt Başarılı! 'Giriş Yap' sekmesinden girebilirsiniz.")
+            else:
+                st.warning("Boş alan bırakmayınız.")
+
+# ==========================================
+# ROUTER (YÖNLENDİRİCİ)
+# ==========================================
+if st.session_state.login_user is None:
+    login_page()
+else:
+    # Kullanıcı giriş yapmış, verisini kontrol et
+    user = st.session_state.login_user
+    # Veritabanını taze yükle (onay durumu değişmiş olabilir)
+    db = load_db()
+    
+    if user in db:
+        user_data = db[user]
+        st.session_state.db = db # Session'ı güncelle
+        
+        if user_data.get('rol') == 'admin':
+            ana_uygulama()
+        elif user_data.get('onay'):
+            ana_uygulama()
+        else:
+            payment_screen()
+    else:
+        st.session_state.login_user = None
+        st.rerun()
