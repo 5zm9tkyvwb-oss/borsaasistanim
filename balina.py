@@ -51,7 +51,7 @@ def login_ekrani():
                     st.error("Hatalı Şifre!")
 
 # ==========================================
-# 2. ANA UYGULAMA (PRO ANALİZ)
+# 2. ANA UYGULAMA
 # ==========================================
 def ana_uygulama():
     st.markdown("""
@@ -68,7 +68,7 @@ def ana_uygulama():
         .sell { background-color: #dc2626; color: white; box-shadow: 0 0 10px #dc2626; }
         .breakout { background-color: #7c3aed; color: white; box-shadow: 0 0 10px #8b5cf6; animation: flash 1s infinite; }
         
-        .seviye-kutu { display: flex; justify-content: space-between; font-size: 12px; margin-top: 8px; background: rgba(0,0,0,0.3); padding: 5px; border-radius: 5px; }
+        .seviye-kutu { display: flex; justify-content: space-between; font-size: 12px; margin-top: 10px; background: rgba(0,0,0,0.4); padding: 8px; border-radius: 8px; border-top: 1px solid rgba(255,255,255,0.1); }
         .pala-yorum { margin-top: 8px; font-style: italic; color: #FFD700; font-size: 13px; font-weight: bold; border-top: 1px solid rgba(255,255,255,0.1); padding-top: 5px; }
         
         .hdfgs-ozel { border: 2px solid #FFD700; box-shadow: 0 0 20px #FFD700; animation: pulse 1.5s infinite; }
@@ -84,9 +84,9 @@ def ana_uygulama():
         st.rerun()
 
     st.title("🥸 PALA İLE İYİ TAHTALAR")
-    st.caption("Destek/Direnç Analizi • Kırılım Takibi • HDFGS Özel")
+    st.caption("HDFGS • DESTEK/DİRENÇ • TOP 20")
 
-    # --- HİSSE LİSTESİ (200'e yakın) ---
+    # --- LİSTELER ---
     bist_listesi = [
         "HDFGS.IS", "THYAO.IS", "ASELS.IS", "GARAN.IS", "SISE.IS", "EREGL.IS", "KCHOL.IS", "AKBNK.IS", 
         "TUPRS.IS", "SASA.IS", "HEKTS.IS", "PETKM.IS", "BIMAS.IS", "EKGYO.IS", "ODAS.IS", "KONTR.IS", 
@@ -118,7 +118,7 @@ def ana_uygulama():
 
     kripto_listesi = ["BTC-USD", "ETH-USD", "BNB-USD", "SOL-USD", "XRP-USD", "DOGE-USD", "ADA-USD", "AVAX-USD", "SHIB-USD", "DOT-USD", "MATIC-USD", "LTC-USD", "TRX-USD", "LINK-USD", "ATOM-USD", "FET-USD", "RNDR-USD", "PEPE-USD", "FLOKI-USD", "NEAR-USD", "ARB-USD", "APT-USD", "SUI-USD", "INJ-USD", "OP-USD", "LDO-USD", "FIL-USD", "HBAR-USD", "VET-USD", "ICP-USD", "GRT-USD", "MKR-USD", "AAVE-USD", "SNX-USD", "ALGO-USD", "SAND-USD", "MANA-USD", "WIF-USD", "BONK-USD", "BOME-USD"]
 
-    # --- GAZA GETİREN SÖZLER ---
+    # --- PALA SÖZLERİ ---
     laf_sok = [
         "Tahtacı masaya vurdu! 👊", "Roketler ateşlendi 🚀", "Para şelalesi akıyor 💸", 
         "Balina ağzını açtı 🐋", "Bu tahta yanıyor 🔥", "Pala iş başında 🥸", 
@@ -134,19 +134,20 @@ def ana_uygulama():
         
         for i, symbol in enumerate(liste):
             try:
-                # Pivot hesabı için 2 günlük veri yeterli
+                # Pivot hesabı için 3 günlük veri (Dün ve Bugün)
                 df = yf.download(symbol, period="3d", interval="1h", progress=False)
                 if hasattr(df.columns, 'levels'): df.columns = df.columns.get_level_values(0)
                 
                 if len(df) > 10:
                     son = df.iloc[-1]
-                    # Pivot / Destek / Direnç Hesabı (Dünkü Kapanışa Göre)
-                    # Son gün değil, bir önceki günün High/Low/Close'unu alıyoruz ki bugünün sınırlarını çizelim
-                    prev = df.iloc[-15] # Yaklaşık bir önceki seans/gün ortalaması gibi davranır saatlikte
+                    
+                    # --- DESTEK / DİRENÇ HESABI (PİVOT) ---
+                    # Yaklaşık "dün" diyebileceğimiz bir periyodu baz alıyoruz
+                    prev = df.iloc[-15] # 15 saat önce (Dünkü seans)
                     
                     pivot = (prev['High'] + prev['Low'] + prev['Close']) / 3
-                    r1 = (2 * pivot) - prev['Low']
-                    s1 = (2 * pivot) - prev['High']
+                    r1 = (2 * pivot) - prev['Low'] # Direnç
+                    s1 = (2 * pivot) - prev['High'] # Destek
                     
                     hacim_son = son['Volume']
                     hacim_ort = df['Volume'].rolling(20).mean().iloc[-1]
@@ -154,6 +155,8 @@ def ana_uygulama():
                     
                     fiyat = son['Close']
                     degisim = ((fiyat - df['Open'].iloc[-1]) / df['Open'].iloc[-1]) * 100
+                    
+                    delta = df['Close'].diff(); gain = delta.where(delta>0,0).rolling(14).mean(); loss = (-delta.where(delta<0,0)).rolling(14).mean(); rs=gain/loss; rsi=100-(100/(1+rs)).iloc[-1]
                     
                     durum = None; renk = "gray"; aciklama = ""
                     pala_yorumu = ""
@@ -163,38 +166,36 @@ def ana_uygulama():
                     if fiyat > r1: kirilim = "DİRENÇ KIRILDI 💥"
                     elif fiyat < s1: kirilim = "DESTEK KIRILDI 🩸"
                     
-                    # HDFGS Kuralı
+                    # HDFGS KURALI
                     if "HDFGS" in symbol:
-                        durum = "HDFGS ÖZEL TAKİP"
-                        if kat > 1.1: 
-                            aciklama = "Hacim Artışı Var!"
-                            renk = "buy" if degisim > 0 else "sell"
-                            pala_yorumu = "Bizim oğlan hareketlendi, takipte kal!"
-                        else:
-                            aciklama = "Hacim Stabil"
-                            renk = "gray"
-                            pala_yorumu = "Şu an dinleniyor, güç topluyor."
-                            
-                    # Diğerleri için Balina Filtresi
+                        if kat > 1.2: durum = "HDFGS HAREKETLİ 🦅"; renk = "buy" if degisim>0 else "sell"; aciklama = "Anlık Hacim"; pala_yorumu = "Bizim oğlan hareketlendi, takipte kal!"
+                        else: durum = "HDFGS SAKİN"; aciklama = "Takipte..."; pala_yorumu = "Şu an dinleniyor, güç topluyor."
+                        oncelik = 999
+                    
+                    # DİĞERLERİ
                     elif kat > 2.5 or (kat > 1.5 and kirilim != ""):
                         if degisim > 0.5: 
                             durum = "BALİNA GİRDİ 🚀"
-                            renk = "buy" if kirilim == "" else "breakout" # Mor renk kırılım varsa
+                            renk = "buy" if kirilim == "" else "breakout"
                             aciklama = f"Hacim {kat:.1f}x"
                             pala_yorumu = random.choice(laf_sok)
                             if kirilim: pala_yorumu = f"{kirilim} - {pala_yorumu}"
-                            
                         elif degisim < -0.5: 
-                            durum = "BALİNA SATIYOR 🔻"
+                            durum = "BALİNA ÇIKTI 🔻"
                             renk = "sell"
-                            aciklama = "Yüklü Çıkış"
+                            aciklama = "Yüklü Satış"
                             pala_yorumu = "Dikkat et, mal boşaltıyorlar!"
+                        oncelik = kat
+                    
+                    elif rsi < 35 and kat > 1.2:
+                        durum = "SİNSİ TOPLAMA 🕵️"
+                        renk = "future"
+                        aciklama = "Dipte Hareket"
+                        pala_yorumu = "Fiyat dipte ama birileri alıyor..."
+                        oncelik = 50
 
                     if durum:
                         isim = symbol.replace(".IS", "").replace("-USD", "")
-                        # Sort önceliği: HDFGS en başa (999), Kırılım varsa 2. sıra (500), Hacim 3. sıra
-                        oncelik = 999 if "HDFGS" in symbol else (500 if kirilim else kat)
-                        
                         bulunanlar.append({
                             "Sembol": isim, "Fiyat": fiyat, "Degisim": degisim, 
                             "HacimKat": kat, "Sinyal": durum, "Renk": renk, 
@@ -202,12 +203,11 @@ def ana_uygulama():
                             "Destek": s1, "Direnc": r1, "Yorum": pala_yorumu
                         })
                 
-                bar.progress((i + 1) / toplam)
-                time.sleep(0.01)
+                bar.progress((i + 1) / toplam); time.sleep(0.01)
             except: continue
         bar.empty()
         
-        # Sıralama ve İlk 20
+        # TOP 20 SIRALAMA
         bulunanlar = sorted(bulunanlar, key=lambda x: x['Oncelik'], reverse=True)
         return bulunanlar[:20]
 
@@ -231,12 +231,12 @@ def ana_uygulama():
                             </div>
                             <div style="text-align:right;">
                                 <div class="signal-box {veri['Renk']}">{veri['Sinyal']}</div>
-                                <p style="margin:2px 0 0 0; font-size:11px; color:#94a3b8;">{veri['Aciklama']}</p>
+                                <p style="margin:2px 0 0 0; font-size:10px; color:#94a3b8;">{veri['Aciklama']}</p>
                             </div>
                         </div>
                         <div class="seviye-kutu">
-                            <span style="color:#4ade80;">🛡️ Destek: {veri['Destek']:.2f}</span>
-                            <span style="color:#f87171;">🧱 Direnç: {veri['Direnc']:.2f}</span>
+                            <span style="color:#4ade80;">🛡️ S: {veri['Destek']:.2f}</span>
+                            <span style="color:#f87171;">🧱 R: {veri['Direnc']:.2f}</span>
                         </div>
                         <div class="pala-yorum">💬 {veri['Yorum']}</div>
                     </div>""", unsafe_allow_html=True)
@@ -258,7 +258,7 @@ def ana_uygulama():
                             </div>
                             <div style="text-align:right;">
                                 <div class="signal-box {veri['Renk']}">{veri['Sinyal']}</div>
-                                <p style="margin:2px 0 0 0; font-size:11px; color:#94a3b8;">{veri['Aciklama']}</p>
+                                <p style="margin:2px 0 0 0; font-size:10px; color:#94a3b8;">{veri['Aciklama']}</p>
                             </div>
                         </div>
                         <div class="seviye-kutu">
@@ -269,6 +269,9 @@ def ana_uygulama():
                     </div>""", unsafe_allow_html=True)
         else: st.info("Kripto tarafı sakin.")
 
+# ==========================================
+# ANA KONTROL
+# ==========================================
 if st.session_state.giris_yapildi:
     ana_uygulama()
 else:
