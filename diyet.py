@@ -93,4 +93,66 @@ def hesapla_ve_olustur():
 
 # --- DİYET LİSTESİ OLUŞTURUCU (Algoritmik) ---
 def liste_yaz(kalori, tercihler):
-    sabah = "2 Haşlanmış Yumurta, 1 dilim peynir, 5 zeytin, yeşillik, 1 dilim tam buğday ek
+    sabah = "2 Haşlanmış Yumurta, 1 dilim peynir, 5 zeytin, yeşillik, 1 dilim tam buğday ekmeği."
+    ogle = "1 porsiyon ızgara tavuk/köfte (150g), bol salata, 1 kase yoğurt."
+    ara = "1 porsiyon meyve (Elma/Muz) + 10 adet çiğ badem."
+    aksam = "8 yemek kaşığı sebze yemeği (susuz), 1 kase cacık, 1 dilim ekmek."
+    
+    # Tercihlere Göre Değiştir (Yapay Zeka Taklidi)
+    if "Yumurta" in tercihler:
+        sabah = "2 dilim beyaz peynir, 2 ceviz, bol domates/salatalık, 1 dilim ekmek (Yumurta yerine)."
+    if "Et/Tavuk" in tercihler:
+        ogle = "1 kase mercimek çorbası veya kurubaklagil yemeği, bol salata, yoğurt."
+    if "Süt/Peynir" in tercihler:
+        ogle = ogle.replace(", 1 kase yoğurt", "")
+        sabah = sabah.replace("1 dilim peynir", "5-6 adet zeytin daha ekle")
+    if "Gluten/Ekmek" in tercihler:
+        sabah = sabah.replace("1 dilim tam buğday ekmeği", "1 avuç ceviz/badem")
+        aksam = aksam.replace("1 dilim ekmek", "Ekstra salata")
+
+    # Kaloriye Göre Porsiyon Ayarı
+    if kalori > 2500:
+        sabah += " + 1 kase yulaf lapası."
+        aksam += " + 1 kase çorba."
+    elif kalori < 1500:
+        aksam = "1 kase çorba ve bol salata (Hafif Akşam)."
+        ara = "1 adet yeşil elma."
+
+    return sabah, ogle, ara, aksam
+
+# --- BUTON ---
+if st.button("ANALİZ ET VE LİSTE OLUŞTUR 🚀"):
+    with st.spinner('Vücut verilerin işleniyor...'):
+        time.sleep(1.5) # Hesaplama efekti
+        
+        kalori, vki, durum = hesapla_ve_olustur()
+        sabah, ogle, ara, aksam = liste_yaz(kalori, ozel_tercih)
+        
+        # SONUÇLARI GÖSTER
+        st.success("✅ Analiz Tamamlandı!")
+        
+        c1, c2 = st.columns(2)
+        c1.markdown(f"<div class='bilgi-karti'>VKİ: {vki:.1f}<br>({durum})</div>", unsafe_allow_html=True)
+        c2.markdown(f"<div class='bilgi-karti'>Günlük Alman Gereken:<br>{kalori} kcal</div>", unsafe_allow_html=True)
+        
+        # LİSTE KUTUSU
+        st.markdown(f"""
+        <div class='sonuc-kutusu'>
+            <h3 style='text-align:center; color:#27ae60;'>Sana Özel 1 Günlük Örnek Menü</h3>
+            <div class='ogun-baslik'>🍳 SABAH</div>
+            {sabah}
+            
+            <div class='ogun-baslik'>🍗 ÖĞLE</div>
+            {ogle}
+            
+            <div class='ogun-baslik'>🍏 ARA ÖĞÜN</div>
+            {ara}
+            
+            <div class='ogun-baslik'>🥗 AKŞAM</div>
+            {aksam}
+            
+            <hr>
+            <small>Not: Bu liste otomatik oluşturulmuştur. Lütfen doktorunuza danışmadan uygulamayın. 
+            Günde en az 2.5 litre su içmeyi unutma! 💧</small>
+        </div>
+        """, unsafe_allow_html=True)
