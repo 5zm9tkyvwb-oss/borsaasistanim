@@ -1,3 +1,4 @@
+
 import streamlit as st
 import yfinance as yf
 import pandas as pd
@@ -10,7 +11,28 @@ from datetime import datetime
 # --- SAYFA AYARLARI ---
 st.set_page_config(page_title="Pala Balina Savar", layout="wide", page_icon="🥸")
 
-# --- VERİTABANI FONKSİYONLARI ---
+# --- CSS TASARIMI ---
+st.markdown("""
+    <style>
+    .stApp { background-color: #0a0e17; color: white; }
+    .pala-sticker { position: fixed; top: 10px; right: 10px; background: linear-gradient(45deg, #FFD700, #FFA500); color: black; padding: 8px 15px; border-radius: 20px; border: 3px solid #000; text-align: center; font-weight: bold; z-index: 9999; box-shadow: 0 5px 15px rgba(0,0,0,0.5); transform: rotate(5deg); }
+    .balina-karti { padding: 12px; border-radius: 12px; margin-bottom: 8px; border: 1px solid #374151; position: relative; }
+    .bist-card { background: linear-gradient(90deg, #0f2027 0%, #2c5364 100%); border-left: 4px solid #38bdf8; }
+    .crypto-card { background: linear-gradient(90deg, #201c05 0%, #423808 100%); border-left: 4px solid #facc15; }
+    .signal-box { padding: 4px 8px; border-radius: 4px; font-weight: bold; font-size: 12px; display: inline-block; }
+    .buy { background-color: #059669; color: white; } .sell { background-color: #dc2626; color: white; } .breakout { background-color: #7c3aed; color: white; animation: flash 1s infinite; }
+    .seviye-kutu { display: flex; justify-content: space-between; font-size: 11px; margin-top: 5px; background: rgba(0,0,0,0.4); padding: 5px; border-radius: 5px; }
+    .stButton button { width: 100%; border-radius: 8px; margin-top: 5px; font-weight: bold; border: 1px solid #555; }
+    .stButton button:hover { border-color: #FFD700; color: #FFD700; }
+    .hdfgs-ozel { border: 2px solid #FFD700; box-shadow: 0 0 20px #FFD700; animation: pulse 1.5s infinite; }
+    .admin-msg { background-color: #333; padding: 10px; border-radius: 5px; border-left: 3px solid #FFD700; margin-bottom: 5px; font-size: 13px; }
+    @keyframes pulse { 0% { box-shadow: 0 0 5px #FFD700; } 50% { box-shadow: 0 0 20px #FFA500; } 100% { box-shadow: 0 0 5px #FFD700; } }
+    @keyframes flash { 0% { opacity: 1; } 50% { opacity: 0.5; } 100% { opacity: 1; } }
+    </style>
+    <div class="pala-sticker"><span style="font-size:30px">🥸</span><br>İYİ TAHTALAR</div>
+""", unsafe_allow_html=True)
+
+# --- VERİTABANI SİSTEMİ ---
 DB_FILE = "users_db.json"
 
 def save_db(data):
@@ -19,10 +41,7 @@ def save_db(data):
 
 def load_db():
     if not os.path.exists(DB_FILE):
-        # Varsayılan Admin Hesabı
-        default_db = {
-            "admin": {"sifre": "pala500", "isim": "Büyük Patron", "onay": True, "rol": "admin", "mesajlar": []}
-        }
+        default_db = {"admin": {"sifre": "pala500", "isim": "Büyük Patron", "onay": True, "rol": "admin", "mesajlar": []}}
         save_db(default_db)
         return default_db
     try:
@@ -31,124 +50,77 @@ def load_db():
     except:
         return {}
 
-# Session Başlatma
-if 'db' not in st.session_state:
-    st.session_state.db = load_db()
-if 'giris_yapildi' not in st.session_state:
-    st.session_state.giris_yapildi = False
-if 'login_user' not in st.session_state:
-    st.session_state.login_user = None
-if 'secilen_hisse' not in st.session_state:
-    st.session_state.secilen_hisse = None
+# Session State
+if 'db' not in st.session_state: st.session_state.db = load_db()
+if 'giris_yapildi' not in st.session_state: st.session_state.giris_yapildi = False
+if 'login_user' not in st.session_state: st.session_state.login_user = None
+if 'secilen_hisse' not in st.session_state: st.session_state.secilen_hisse = None
 
 # ==========================================
-# 1. YÖNETİM PANELİ (ADMIN)
+# 1. ADMIN PANELİ (SOL MENÜDE GİZLİ)
 # ==========================================
 def admin_dashboard():
     st.sidebar.markdown("---")
-    st.sidebar.title("🛠️ PALA PANELİ")
-    menu = st.sidebar.radio("Yönetim:", ["Üyeler & Onay", "Destek Mesajları"])
+    st.sidebar.title("👑 PALA PANELİ")
+    st.sidebar.success("Yönetici Modu Aktif")
+    
+    menu = st.sidebar.radio("Panel Menüsü:", ["📩 Gelen Mesajlar", "👥 Üye Listesi & Onay"])
     
     db = st.session_state.db
     
-    if menu == "Üyeler & Onay":
-        st.subheader("👥 Üye Listesi")
-        uye_listesi = []
-        for k, v in db.items():
-            if k != "admin":
-                uye_listesi.append({"Kullanıcı": k, "İsim": v.get('isim', '-'), "Onay": v.get('onay', False)})
-        
-        if len(uye_listesi) > 0:
-            st.table(pd.DataFrame(uye_listesi))
-            col1, col2 = st.columns(2)
-            with col1:
-                onaysizlar = [u['Kullanıcı'] for u in uye_listesi if not u['Onay']]
-                if onaysizlar:
-                    user_to_approve = st.selectbox("Onaylanacak Üye", onaysizlar)
-                    if st.button("✅ ONAYLA"):
-                        db[user_to_approve]['onay'] = True
-                        save_db(db)
-                        st.success(f"{user_to_approve} onaylandı!")
-                        st.rerun()
-            with col2:
-                tum_uyeler = [u['Kullanıcı'] for u in uye_listesi]
-                if tum_uyeler:
-                    user_to_delete = st.selectbox("Silinecek Üye", tum_uyeler)
-                    if st.button("🗑️ SİL"):
-                        del db[user_to_delete]
-                        save_db(db)
-                        st.warning(f"{user_to_delete} silindi!")
-                        st.rerun()
-        else:
-            st.info("Henüz üye yok.")
-
-    elif menu == "Destek Mesajları":
-        st.subheader("📩 Mesajlar")
+    if menu == "📩 Gelen Mesajlar":
+        st.sidebar.subheader("Son Bildirimler")
+        mesaj_var_mi = False
         for k, v in db.items():
             if "mesajlar" in v and v['mesajlar']:
+                mesaj_var_mi = True
+                st.sidebar.markdown(f"**👤 {k} ({v.get('isim','-')})**")
                 for msg in v['mesajlar']:
-                    st.info(f"👤 **{k}:** {msg}")
-
-# ==========================================
-# 2. ÖDEME EKRANI
-# ==========================================
-def payment_screen():
-    st.markdown("<h1 style='text-align:center; color:#FFD700;'>🔒 HESAP ONAY BEKLİYOR</h1>", unsafe_allow_html=True)
-    
-    # VIP Kart
-    st.markdown("""
-    <div style="background: linear-gradient(135deg, #1a1a1a 0%, #000000 100%); border: 3px solid #FFD700; border-radius: 20px; padding: 30px; text-align: center; box-shadow: 0 0 30px rgba(255, 215, 0, 0.2);">
-        <h2>ÜYELİK ÜCRETİ: $500</h2>
-        <p>Pala Balina Savar sistemine erişmek için ödeme yapmanız gerekmektedir.</p>
-    </div>
-    """, unsafe_allow_html=True)
-    
-    col1, col2 = st.columns(2)
-    with col1:
-        st.subheader("💳 Ödeme Bilgileri")
-        st.warning("Lütfen ödemeyi yapıp dekont gönderin.")
-        st.code("USDT (TRC20): TXaBCdef1234567890...")
-        st.code("IBAN: TR12 0000 ... (Pala Yazılım)")
+                    st.sidebar.markdown(f"<div class='admin-msg'>{msg}</div>", unsafe_allow_html=True)
         
-    with col2:
-        st.subheader("💬 Bildirim Gönder")
-        user_msg = st.text_area("Mesajınız (Dekont no vb.)")
-        if st.button("BİLDİRİM GÖNDER 📨"):
-            kullanici = st.session_state.login_user
-            db = st.session_state.db
-            if "mesajlar" not in db[kullanici]: db[kullanici]["mesajlar"] = []
-            db[kullanici]["mesajlar"].append(f"[{datetime.now().strftime('%H:%M')}] {user_msg}")
-            save_db(db)
-            st.success("Admin'e iletildi! Onaylanınca giriş yapabileceksiniz.")
+        if not mesaj_var_mi:
+            st.sidebar.info("Henüz yeni mesaj yok.")
+
+    elif menu == "👥 Üye Listesi & Onay":
+        st.sidebar.subheader("Üye Yönetimi")
+        
+        # Veriyi Tabloya Çevir
+        uye_data = []
+        for k, v in db.items():
+            if k != "admin":
+                uye_data.append({"Kullanıcı": k, "İsim": v.get('isim','-'), "Onay": "✅" if v.get('onay') else "❌"})
+        
+        if len(uye_data) > 0:
+            st.sidebar.table(pd.DataFrame(uye_data))
             
-    if st.button("Çıkış Yap"):
-        st.session_state.login_user = None
-        st.rerun()
+            # Onaylama
+            onaysizlar = [u['Kullanıcı'] for u in uye_data if u['Onay'] == "❌"]
+            if onaysizlar:
+                user_to_approve = st.sidebar.selectbox("Onaylanacak Üye:", onaysizlar)
+                if st.sidebar.button("ÜYELİĞİ ONAYLA ✅"):
+                    db[user_to_approve]['onay'] = True
+                    save_db(db)
+                    st.sidebar.success(f"{user_to_approve} onaylandı!")
+                    time.sleep(1)
+                    st.rerun()
+            
+            # Silme
+            st.sidebar.markdown("---")
+            tum_uyeler = [u['Kullanıcı'] for u in uye_data]
+            user_to_delete = st.sidebar.selectbox("Silinecek Üye:", tum_uyeler)
+            if st.sidebar.button("ÜYEYİ SİL 🗑️"):
+                del db[user_to_delete]
+                save_db(db)
+                st.sidebar.warning(f"{user_to_delete} silindi!")
+                time.sleep(1)
+                st.rerun()
+        else:
+            st.sidebar.info("Kayıtlı üye yok.")
 
 # ==========================================
-# 3. ANA UYGULAMA (DÜZELTİLEN KISIM)
+# 2. ANA UYGULAMA (GRAFİK VE TARAMA)
 # ==========================================
 def ana_uygulama():
-    # --- CSS ---
-    st.markdown("""
-        <style>
-        .stApp { background-color: #0a0e17; color: white; }
-        .pala-sticker { position: fixed; top: 10px; right: 10px; background: linear-gradient(45deg, #FFD700, #FFA500); color: black; padding: 8px 15px; border-radius: 20px; border: 3px solid #000; text-align: center; font-weight: bold; z-index: 9999; box-shadow: 0 5px 15px rgba(0,0,0,0.5); transform: rotate(5deg); }
-        .balina-karti { padding: 12px; border-radius: 12px; margin-bottom: 8px; border: 1px solid #374151; position: relative; }
-        .bist-card { background: linear-gradient(90deg, #0f2027 0%, #2c5364 100%); border-left: 4px solid #38bdf8; }
-        .crypto-card { background: linear-gradient(90deg, #201c05 0%, #423808 100%); border-left: 4px solid #facc15; }
-        .signal-box { padding: 4px 8px; border-radius: 4px; font-weight: bold; font-size: 12px; display: inline-block; }
-        .buy { background-color: #059669; color: white; } .sell { background-color: #dc2626; color: white; } .breakout { background-color: #7c3aed; color: white; animation: flash 1s infinite; }
-        .seviye-kutu { display: flex; justify-content: space-between; font-size: 11px; margin-top: 5px; background: rgba(0,0,0,0.4); padding: 5px; border-radius: 5px; }
-        .stButton button { width: 100%; border-radius: 8px; margin-top: 5px; font-weight: bold; border: 1px solid #555; }
-        .stButton button:hover { border-color: #FFD700; color: #FFD700; }
-        .hdfgs-ozel { border: 2px solid #FFD700; box-shadow: 0 0 20px #FFD700; animation: pulse 1.5s infinite; }
-        @keyframes pulse { 0% { box-shadow: 0 0 5px #FFD700; } 50% { box-shadow: 0 0 20px #FFA500; } 100% { box-shadow: 0 0 5px #FFD700; } }
-        @keyframes flash { 0% { opacity: 1; } 50% { opacity: 0.5; } 100% { opacity: 1; } }
-        </style>
-        <div class="pala-sticker"><span style="font-size:30px">🥸</span><br>İYİ TAHTALAR</div>
-    """, unsafe_allow_html=True)
-
     col_head = st.columns([8, 2])
     with col_head[0]:
         st.title("🥸 PALA İLE İYİ TAHTALAR")
@@ -158,8 +130,9 @@ def ana_uygulama():
             st.session_state.login_user = None
             st.rerun()
 
-    # Admin Panelini Göster (Eğer Admisse)
-    if st.session_state.db[st.session_state.login_user].get('rol') == 'admin':
+    # ADMIN KONTROLÜ (PANELİ GÖSTER)
+    user_role = st.session_state.db[st.session_state.login_user].get('rol')
+    if user_role == 'admin':
         admin_dashboard()
 
     # GRAFİK FONKSİYONU
@@ -186,7 +159,7 @@ def ana_uygulama():
         if st.button("Grafiği Kapat X", type="secondary"): st.session_state.secilen_hisse = None; st.rerun()
         st.divider()
 
-    # LİSTELER & TARAMA
+    # LİSTELER
     bist_listesi = ["HDFGS.IS", "THYAO.IS", "ASELS.IS", "GARAN.IS", "SISE.IS", "EREGL.IS", "KCHOL.IS", "AKBNK.IS", "TUPRS.IS", "SASA.IS", "HEKTS.IS", "PETKM.IS", "BIMAS.IS", "EKGYO.IS", "ODAS.IS", "KONTR.IS", "GUBRF.IS", "FROTO.IS", "TTKOM.IS", "ISCTR.IS", "YKBNK.IS", "SAHOL.IS", "ALARK.IS", "TAVHL.IS", "MGROS.IS", "ASTOR.IS", "EUPWR.IS", "GESAN.IS", "SMRTG.IS", "ALFAS.IS", "CANTE.IS", "REEDR.IS", "CVKMD.IS", "KCAER.IS", "OYAKC.IS", "EGEEN.IS", "DOAS.IS", "KOZAL.IS", "PGSUS.IS", "TOASO.IS", "ENKAI.IS", "TCELL.IS"]
     kripto_listesi = ["BTC-USD", "ETH-USD", "BNB-USD", "SOL-USD", "XRP-USD", "DOGE-USD", "ADA-USD", "AVAX-USD", "SHIB-USD", "DOT-USD", "MATIC-USD", "LTC-USD", "TRX-USD", "LINK-USD", "ATOM-USD", "FET-USD", "RNDR-USD", "PEPE-USD", "FLOKI-USD", "NEAR-USD", "ARB-USD", "APT-USD", "SUI-USD", "INJ-USD", "OP-USD", "LDO-USD", "FIL-USD", "HBAR-USD", "VET-USD", "ICP-USD", "GRT-USD", "MKR-USD", "AAVE-USD", "SNX-USD", "ALGO-USD", "SAND-USD", "MANA-USD", "WIF-USD", "BONK-USD", "BOME-USD"]
 
@@ -206,11 +179,9 @@ def ana_uygulama():
                     hacim_son = son['Volume']; hacim_ort = df['Volume'].rolling(20).mean().iloc[-1]
                     kat = hacim_son / hacim_ort if hacim_ort > 0 else 0
                     fiyat = son['Close']; degisim = ((fiyat - df['Open'].iloc[-1]) / df['Open'].iloc[-1]) * 100
-                    
                     durum = None; renk = "gray"; aciklama = ""; kirilim = ""
                     if fiyat > r1: kirilim = "DİRENÇ KIRILDI 💥"
                     elif fiyat < s1: kirilim = "DESTEK KIRILDI 🩸"
-                    
                     if "HDFGS" in symbol:
                         if kat > 1.2: durum = "HDFGS HAREKETLİ 🦅"; renk = "buy" if degisim>0 else "sell"; aciklama = "Anlık Hacim"; oncelik = 999
                         else: durum = "HDFGS SAKİN"; aciklama = "Takipte..."; oncelik = 999
@@ -218,7 +189,6 @@ def ana_uygulama():
                         if degisim > 0.5: durum = "BALİNA GİRDİ 🚀"; renk = "buy" if kirilim == "" else "breakout"; aciklama = f"Hacim {kat:.1f}x"; oncelik = kat
                         elif degisim < -0.5: durum = "BALİNA ÇIKTI 🔻"; renk = "sell"; aciklama = "Yüklü Satış"; oncelik = kat
                         if kirilim: aciklama += f" | {kirilim}"
-
                     if durum:
                         isim = symbol.replace(".IS", "").replace("-USD", "")
                         bulunanlar.append({"Sembol": isim, "Fiyat": fiyat, "Degisim": degisim, "HacimKat": kat, "Sinyal": durum, "Renk": renk, "Aciklama": aciklama, "Oncelik": oncelik, "Destek": s1, "Direnc": r1, "Kod": symbol})
@@ -252,14 +222,38 @@ def ana_uygulama():
         else: st.info("Kripto sakin.")
 
 # ==========================================
-# 5. LOGIN / REGISTER EKRANI
+# 4. ÖDEME EKRANI
+# ==========================================
+def payment_screen():
+    st.markdown("<h1 style='text-align:center; color:#FFD700;'>🔒 HESAP ONAY BEKLİYOR</h1>", unsafe_allow_html=True)
+    st.markdown("<div class='vip-card'><h2>ÜYELİK ÜCRETİ: $500</h2><p>Pala Balina Savar sistemine erişmek için ödeme yapmanız gerekmektedir.</p></div>", unsafe_allow_html=True)
+    
+    col1, col2 = st.columns(2)
+    with col1:
+        st.subheader("💳 Ödeme Bilgileri")
+        st.code("USDT (TRC20): TXaBCdef1234567890...")
+        st.code("IBAN: TR12 0000 ... (Pala Yazılım)")
+        
+    with col2:
+        st.subheader("💬 Bildirim Gönder")
+        user_msg = st.text_area("Mesajınız (Dekont no vb.)")
+        if st.button("BİLDİRİM GÖNDER 📨"):
+            kullanici = st.session_state.login_user
+            db = st.session_state.db
+            if "mesajlar" not in db[kullanici]: db[kullanici]["mesajlar"] = []
+            db[kullanici]["mesajlar"].append(f"[{datetime.now().strftime('%H:%M')}] {user_msg}")
+            save_db(db)
+            st.success("Admin'e iletildi! Onaylanınca giriş yapabileceksiniz.")
+            
+    if st.button("Çıkış Yap"):
+        st.session_state.login_user = None
+        st.rerun()
+
+# ==========================================
+# 5. LOGIN / REGISTER
 # ==========================================
 def login_page():
-    st.markdown("""
-    <div style="text-align:center;">
-        <h1 style="color:#FFD700; font-size: 60px;">🥸 PALA GİRİŞ</h1>
-    </div>
-    """, unsafe_allow_html=True)
+    st.markdown("""<div style="text-align:center;"><h1 style="color:#FFD700; font-size: 60px;">🥸 PALA GİRİŞ</h1></div>""", unsafe_allow_html=True)
     
     tab1, tab2 = st.tabs(["GİRİŞ YAP", "KAYIT OL (Üye Ol)"])
     
@@ -267,7 +261,8 @@ def login_page():
         kullanici = st.text_input("Kullanıcı Adı")
         sifre = st.text_input("Şifre", type="password")
         
-        if st.checkbox("Veritabanını Sıfırla (Sadece Hata Alırsan Kullan)"):
+        # --- SİSTEM SIFIRLAMA (ACİL DURUM İÇİN) ---
+        if st.checkbox("Veritabanını Sıfırla (Hata Alırsan Bas)"):
             if st.button("SİSTEMİ ONAR 🛠️"):
                 st.session_state.db = {"admin": {"sifre": "pala500", "isim": "Büyük Patron", "onay": True, "rol": "admin", "mesajlar": []}}
                 save_db(st.session_state.db)
@@ -287,7 +282,6 @@ def login_page():
         yeni_kul = st.text_input("Kullanıcı Adı (Nick)")
         yeni_isim = st.text_input("Adınız Soyadınız")
         yeni_sifre = st.text_input("Yeni Şifre", type="password")
-        
         if st.button("KAYIT OL 📝"):
             db = st.session_state.db
             if yeni_kul in db:
@@ -295,7 +289,7 @@ def login_page():
             elif yeni_kul and yeni_sifre:
                 db[yeni_kul] = {"sifre": yeni_sifre, "isim": yeni_isim, "onay": False, "rol": "user", "mesajlar": []}
                 save_db(db)
-                st.success("Kayıt Başarılı! Şimdi 'Giriş Yap' sekmesinden girebilirsiniz.")
+                st.success("Kayıt Başarılı! Şimdi Giriş Yap sekmesinden girebilirsiniz.")
             else:
                 st.warning("Alanları doldurun.")
 
