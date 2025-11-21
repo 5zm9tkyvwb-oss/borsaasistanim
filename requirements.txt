@@ -1,1 +1,4 @@
-plotly
+XlsxWriter
+pandas
+yfinance
+streamlit
