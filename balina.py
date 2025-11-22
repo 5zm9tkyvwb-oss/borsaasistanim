@@ -12,7 +12,7 @@ from datetime import datetime
 from io import BytesIO
 
 # --- SAYFA AYARLARI ---
-st.set_page_config(page_title="Pala Balina Savar", layout="wide", page_icon="🥸")
+st.set_page_config(page_title="Kemal Balina Avcısı", layout="wide", page_icon="🐋")
 
 # ==========================================
 # 🚨 TELEGRAM AYARLARI
@@ -63,79 +63,121 @@ if 'giris_yapildi' not in st.session_state: st.session_state.giris_yapildi = Fal
 if 'login_user' not in st.session_state: st.session_state.login_user = None
 if 'secilen_hisse' not in st.session_state: st.session_state.secilen_hisse = None
 
-# --- TASARIM (SİYAH & ALTIN & NEON) ---
+# --- TASARIM (ZENGİN OKYANUS & ALTIN & CANLI RENKLER) ---
 st.markdown("""
     <style>
-    .stApp { background-color: #000000 !important; color: #e5e5e5 !important; }
+    /* ANA ARKA PLAN - Zengin Gradient */
+    .stApp { 
+        background: linear-gradient(135deg, #0f2027 0%, #203a43 50%, #2c5364 100%) !important;
+        background-attachment: fixed;
+        color: #ffffff !important; 
+    }
     
-    /* Butonlar */
+    /* Butonlar - Parlak ve Canlı */
     div.stButton > button {
-        background-color: #000000 !important; color: #FFD700 !important; 
-        border: 2px solid #FFD700 !important; border-radius: 12px !important; 
-        font-weight: bold !important; height: 50px !important; width: 100% !important;
+        background: linear-gradient(90deg, #F2994A 0%, #F2C94C 100%) !important;
+        color: #000000 !important; 
+        border: none !important; 
+        border-radius: 12px !important; 
+        font-weight: 800 !important; 
+        height: 50px !important; 
+        width: 100% !important;
+        box-shadow: 0 4px 15px rgba(242, 201, 76, 0.4) !important;
         transition: all 0.3s ease !important;
+        text-transform: uppercase;
+        letter-spacing: 1px;
     }
     div.stButton > button:hover { 
-        background-color: #FFD700 !important; color: #000000 !important; 
-        transform: scale(1.02) !important; 
+        transform: translateY(-3px) !important;
+        box-shadow: 0 8px 25px rgba(242, 201, 76, 0.6) !important;
+        background: linear-gradient(90deg, #F2C94C 0%, #F2994A 100%) !important;
     }
     
-    /* Inputlar */
+    /* Input Alanları - Buzlu Cam Efekti */
     .stTextInput input, .stNumberInput input, .stTextArea textarea { 
-        background-color: #111 !important; color: #FFD700 !important; 
-        border: 1px solid #555 !important; 
+        background-color: rgba(255, 255, 255, 0.1) !important; 
+        color: #ffffff !important; 
+        border: 1px solid rgba(255, 255, 255, 0.2) !important; 
+        border-radius: 8px !important;
+    }
+    .stTextInput input:focus {
+        border-color: #F2C94C !important;
+        box-shadow: 0 0 10px rgba(242, 201, 76, 0.5);
     }
     
-    /* Pala Sticker */
+    /* STICKER */
     .pala-sticker { 
-        position: fixed; top: 10px; right: 10px; 
-        background: linear-gradient(45deg, #FFD700, #FFA500); 
-        color: black; padding: 8px 15px; border-radius: 20px; 
-        border: 3px solid #000; text-align: center; font-weight: bold; 
-        z-index: 9999; box-shadow: 0 5px 15px rgba(0,0,0,0.5); 
-        transform: rotate(5deg); 
+        position: fixed; top: 20px; right: 20px; 
+        background: linear-gradient(45deg, #00c6ff, #0072ff); 
+        color: white; padding: 10px 20px; border-radius: 30px; 
+        border: 2px solid white; text-align: center; font-weight: bold; 
+        z-index: 9999; box-shadow: 0 5px 20px rgba(0,114,255,0.4); 
+        transform: rotate(0deg);
+        backdrop-filter: blur(5px);
     }
     
-    /* Kartlar */
-    .balina-karti { padding: 12px; border-radius: 12px; margin-bottom: 8px; border: 1px solid #333; background-color: #111; }
-    .bist-card { border-left: 4px solid #38bdf8; }
-    .crypto-card { border-left: 4px solid #facc15; }
-    .signal-box { padding: 4px 8px; border-radius: 4px; font-weight: bold; font-size: 12px; display: inline-block; }
-    .buy { background-color: #064e3b; color: #34d399; } 
-    .sell { background-color: #450a0a; color: #f87171; } 
+    /* Kartlar ve Kutular */
+    .balina-karti { 
+        padding: 15px; border-radius: 15px; margin-bottom: 10px; 
+        border: 1px solid rgba(255,255,255,0.1); 
+        background-color: rgba(255, 255, 255, 0.05); 
+        backdrop-filter: blur(10px);
+    }
+    .bist-card { border-left: 5px solid #00c6ff; }
+    .crypto-card { border-left: 5px solid #F2C94C; }
     
-    .hdfgs-ozel { border: 2px solid #FFD700; box-shadow: 0 0 20px rgba(255, 215, 0, 0.2); animation: pulse 1.5s infinite; }
+    .signal-box { padding: 5px 10px; border-radius: 6px; font-weight: bold; font-size: 13px; display: inline-block; box-shadow: 0 2px 5px rgba(0,0,0,0.2); }
+    .buy { background: linear-gradient(45deg, #11998e, #38ef7d); color: white; } 
+    .sell { background: linear-gradient(45deg, #cb2d3e, #ef473a); color: white; } 
+    
+    .hdfgs-ozel { 
+        border: 2px solid #F2C94C; 
+        box-shadow: 0 0 25px rgba(242, 201, 76, 0.3); 
+        animation: pulse 2s infinite; 
+    }
     
     @keyframes pulse { 
-        0% { box-shadow: 0 0 5px rgba(255,215,0,0.2); } 
-        50% { box-shadow: 0 0 20px rgba(255,215,0,0.6); } 
-        100% { box-shadow: 0 0 5px rgba(255,215,0,0.2); } 
+        0% { box-shadow: 0 0 5px rgba(242, 201, 76, 0.2); } 
+        50% { box-shadow: 0 0 25px rgba(242, 201, 76, 0.7); } 
+        100% { box-shadow: 0 0 5px rgba(242, 201, 76, 0.2); } 
     }
 
     /* TOP 10 KARTLARI */
     .top10-card {
-        background-color: #0a0a0a;
-        border: 1px solid #4ade80;
-        border-radius: 10px;
+        background: rgba(0, 0, 0, 0.3);
+        border: 1px solid #38ef7d;
+        border-radius: 12px;
         padding: 10px;
         text-align: center;
         margin-bottom: 10px;
-        box-shadow: 0 4px 6px rgba(74, 222, 128, 0.1);
+        backdrop-filter: blur(5px);
+        box-shadow: 0 4px 6px rgba(56, 239, 125, 0.1);
     }
-    .top10-title { color: #FFD700; font-weight: bold; font-size: 18px; margin: 0; }
+    .top10-title { color: #F2C94C; font-weight: bold; font-size: 18px; margin: 0; }
     .top10-price { color: white; font-size: 16px; font-weight: bold; margin: 5px 0; }
-    .top10-change { color: #4ade80; font-weight: bold; font-size: 14px; }
+    .top10-change { color: #38ef7d; font-weight: bold; font-size: 14px; text-shadow: 0 0 10px rgba(56,239,125,0.5); }
     
     /* Arama Kutusu Konteyner */
     .search-container {
-        background-color: #1f2937;
-        padding: 20px;
-        border-radius: 15px;
-        border: 2px solid #FFD700;
+        background: linear-gradient(90deg, rgba(15, 32, 39, 0.8), rgba(44, 83, 100, 0.8));
+        padding: 25px;
+        border-radius: 20px;
+        border: 2px solid #00c6ff;
         margin: 20px 0;
+        box-shadow: 0 10px 30px rgba(0, 198, 255, 0.15);
+    }
+    
+    /* Başlıklar */
+    h1, h2, h3 { color: #ffffff; text-shadow: 0 2px 4px rgba(0,0,0,0.5); }
+    .big-title {
+        background: -webkit-linear-gradient(#F2C94C, #F2994A);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        font-weight: 900;
+        filter: drop-shadow(0 2px 5px rgba(242, 153, 74, 0.5));
     }
     </style>
-    <div class="pala-sticker"><span style="font-size:30px">🥸</span><br>İYİ TAHTALAR</div>
+    <div class="pala-sticker"><span style="font-size:25px">🐋</span><br>KEMAL BALİNA</div>
 """, unsafe_allow_html=True)
 
 # --- YARDIMCI FONKSİYONLAR ---
@@ -185,9 +227,10 @@ def grafik_ciz(symbol):
             r1=(2*pivot)-prev['Low']; s1=(2*pivot)-prev['High']
             fig = go.Figure()
             fig.add_trace(go.Candlestick(x=df.index, open=df['Open'], high=df['High'], low=df['Low'], close=df['Close'], name="Fiyat"))
-            fig.add_hline(y=r1, line_dash="dash", line_color="red", annotation_text="DİRENÇ")
-            fig.add_hline(y=s1, line_dash="dash", line_color="green", annotation_text="DESTEK")
-            fig.update_layout(title=f"{symbol} PALA ANALİZİ", template="plotly_dark", height=450, xaxis_rangeslider_visible=False, plot_bgcolor='#FFFF00', paper_bgcolor='#0a0e17')
+            fig.add_hline(y=r1, line_dash="dash", line_color="#ef473a", annotation_text="DİRENÇ")
+            fig.add_hline(y=s1, line_dash="dash", line_color="#38ef7d", annotation_text="DESTEK")
+            # Grafik arkaplanı şeffaf ve modern
+            fig.update_layout(title=f"{symbol} PALA ANALİZİ", template="plotly_dark", height=450, xaxis_rangeslider_visible=False, plot_bgcolor='rgba(0,0,0,0)', paper_bgcolor='rgba(0,0,0,0)')
             news = []
             try:
                 n = yf.Ticker(symbol).news
@@ -201,9 +244,9 @@ def grafik_ciz(symbol):
 # ==========================================
 def admin_dashboard():
     st.sidebar.markdown("---")
-    st.sidebar.title("👑 PALA PANELİ")
+    st.sidebar.title("👑 KEMAL PANELİ")
     if st.sidebar.button("🔔 Telegram Test"):
-        send_telegram("🦅 *Pala Balina Savar:* Test Mesajı Başarılı!")
+        send_telegram("🦅 *Kemal Balina Avcısı:* Test Mesajı Başarılı!")
         st.sidebar.success("Gönderildi!")
     menu = st.sidebar.radio("Yönetim:", ["Üyeler & Onay", "Gelen Mesajlar"])
     db = load_db()
@@ -248,7 +291,7 @@ def ana_uygulama():
     col_head = st.columns([8, 2])
     with col_head[0]:
         isim = db[user].get('isim', 'Üye')
-        st.title("🥸 PALA İLE İYİ TAHTALAR")
+        st.markdown(f"<h1 class='big-title'>🐋 KEMAL BALİNA AVCISI</h1>", unsafe_allow_html=True)
         st.caption(f"Hoşgeldin {isim} | VIP Panel")
     with col_head[1]:
         if st.button("ÇIKIŞ YAP"): st.session_state.login_user=None; st.rerun()
@@ -263,19 +306,19 @@ def ana_uygulama():
         for i, item in enumerate(top10):
             if i < 5:
                 with cols[i]:
-                    st.markdown(f"""<div class="top10-card"><h3 style="margin:0; color:#FFD700;">{item['Sembol']}</h3><h2 style="margin:0; color:white;">{item['Fiyat']:.2f}</h2><span style="color:#4ade80;">+%{item['Degisim']:.1f}</span></div>""", unsafe_allow_html=True)
+                    st.markdown(f"""<div class="top10-card"><h3 style="margin:0; color:#F2C94C;">{item['Sembol']}</h3><h2 style="margin:0; color:white;">{item['Fiyat']:.2f}</h2><span style="color:#38ef7d;">+%{item['Degisim']:.1f}</span></div>""", unsafe_allow_html=True)
         cols2 = st.columns(5)
         for i, item in enumerate(top10):
             if i >= 5:
                 with cols2[i-5]:
-                    st.markdown(f"""<div class="top10-card"><h3 style="margin:0; color:#FFD700;">{item['Sembol']}</h3><h2 style="margin:0; color:white;">{item['Fiyat']:.2f}</h2><span style="color:#4ade80;">+%{item['Degisim']:.1f}</span></div>""", unsafe_allow_html=True)
+                    st.markdown(f"""<div class="top10-card"><h3 style="margin:0; color:#F2C94C;">{item['Sembol']}</h3><h2 style="margin:0; color:white;">{item['Fiyat']:.2f}</h2><span style="color:#38ef7d;">+%{item['Degisim']:.1f}</span></div>""", unsafe_allow_html=True)
     else: st.info("Veriler Yükleniyor...")
     st.divider()
 
-    # --- MERKEZİ ARAMA KUTUSU (YENİ EKLENDİ) ---
-    st.markdown("""<div class="search-container"><h3 style='color:#FFD700; text-align:center; margin-top:0;'>🔍 HIZLI SORGULAMA MERKEZİ</h3></div>""", unsafe_allow_html=True)
+    # --- MERKEZİ ARAMA KUTUSU ---
+    st.markdown("""<div class="search-container"><h3 style='color:#F2C94C; text-align:center; margin-top:0;'>🔍 HIZLI SORGULAMA MERKEZİ</h3></div>""", unsafe_allow_html=True)
     c_sr1, c_sr2 = st.columns([3, 1])
-    arama_merkez = c_sr1.text_input("Hangi Hissye Bakalım Patron?", placeholder="Örn: HDFGS, ASELS, BTC-USD...").upper()
+    arama_merkez = c_sr1.text_input("Hangi Hisseye Bakalım Patron?", placeholder="Örn: HDFGS, ASELS, BTC-USD...").upper()
     if c_sr2.button("SORGULA 🚀", key="main_search_btn"):
         if arama_merkez:
             sembol_ara = f"{arama_merkez}.IS" if "-" not in arama_merkez and ".IS" not in arama_merkez and "USD" not in arama_merkez else arama_merkez
@@ -417,6 +460,7 @@ def ana_uygulama():
                     except: pass
                 if data:
                     fig = px.treemap(pd.DataFrame(data), path=['Sembol'], values='Hacim')
+                    fig.update_layout(template="plotly_dark", paper_bgcolor='rgba(0,0,0,0)')
                     st.plotly_chart(fig, use_container_width=True)
 
     elif menu == "📒 LOGLAR":
@@ -450,35 +494,42 @@ def ana_uygulama():
 # LOGIN / PAYMENT
 # ==========================================
 def login_page():
-    st.markdown("""<div style="text-align:center;"><h1 style="color:#FFD700; font-size: 60px;">🥸 PALA GİRİŞ</h1></div>""", unsafe_allow_html=True)
+    # Başlık Tasarımı ve İsim Değişikliği
+    st.markdown("""
+    <div style="text-align:center; padding-bottom: 30px;">
+        <h1 class='big-title' style='font-size: 55px;'>🌊 KEMAL BALİNA AVCISI 🐋</h1>
+        <p style="color: #b0c4de; font-size: 18px;">Derin Suların Hakimi Olun</p>
+    </div>
+    """, unsafe_allow_html=True)
+    
     t1, t2 = st.tabs(["GİRİŞ YAP", "KAYIT OL"])
     with t1:
-        k = st.text_input("Kullanıcı"); s = st.text_input("Şifre", type="password")
-        if st.checkbox("Sıfırla"):
+        k = st.text_input("Kullanıcı Adı"); s = st.text_input("Şifre", type="password")
+        if st.checkbox("Sıfırla (Acil Durum)"):
             if st.button("SİSTEMİ ONAR"):
                 st.session_state.db = {"admin": {"sifre": "pala500", "isim": "Patron", "onay": True, "rol": "admin", "mesajlar": [], "loglar": [], "portfoy": []}}
                 save_db(st.session_state.db); st.success("Admin Hazır")
-        if st.button("GİRİŞ"):
+        if st.button("GİRİŞ YAP"):
             db=load_db()
             if k in db and db[k]['sifre']==s: st.session_state.login_user=k; st.session_state.giris_yapildi=True; st.rerun()
-            else: st.error("Hatalı")
+            else: st.error("Hatalı bilgiler kaptan!")
     with t2:
-        yk = st.text_input("Yeni Nick"); y_ad = st.text_input("Ad"); ys = st.text_input("Yeni Şifre", type="password")
-        if st.button("KAYIT"):
+        yk = st.text_input("Yeni Nick"); y_ad = st.text_input("Adınız"); ys = st.text_input("Yeni Şifre", type="password")
+        if st.button("KAYIT OL"):
             db=load_db()
-            if yk not in db: db[yk] = {"sifre":ys, "isim":y_ad, "onay":False, "rol":"user", "mesajlar":[], "portfoy":[]}; save_db(db); st.success("Kaydolundu")
+            if yk not in db: db[yk] = {"sifre":ys, "isim":y_ad, "onay":False, "rol":"user", "mesajlar":[], "portfoy":[]}; save_db(db); st.success("Kaydolundu, onay bekleniyor.")
 
 def payment_screen():
-    st.markdown("<h1 style='text-align:center; color:#FFD700;'>🔒 ONAY BEKLENİYOR</h1>", unsafe_allow_html=True)
-    st.markdown("<div class='vip-card'><h2>ÜYELİK: $500</h2><p>Ödeme Bekleniyor.</p></div>", unsafe_allow_html=True)
+    st.markdown("<h1 style='text-align:center; color:#F2C94C;'>🔒 ERİŞİM KISITLI</h1>", unsafe_allow_html=True)
+    st.markdown("<div class='balina-karti' style='text-align:center;'><h2>VIP ÜYELİK: $500</h2><p>Ödeme Onayı Bekleniyor.</p></div>", unsafe_allow_html=True)
     c1, c2 = st.columns(2)
-    with c1: st.markdown("<div class='odeme-kutu'><strong>USDT</strong><br>TXa...</div>", unsafe_allow_html=True)
+    with c1: st.markdown("<div class='balina-karti'><strong>USDT (TRC20)</strong><br>TXa...CüzdanAdresi...</div>", unsafe_allow_html=True)
     with c2:
-        msg = st.text_area("Dekont"); 
+        msg = st.text_area("Dekont / Açıklama"); 
         if st.button("GÖNDER"):
             u=st.session_state.login_user; db=load_db()
             if "mesajlar" not in db[u]: db[u]["mesajlar"]=[]
-            db[u]["mesajlar"].append(f"[{datetime.now().strftime('%H:%M')}] {msg}"); save_db(db); st.success("İletildi")
+            db[u]["mesajlar"].append(f"[{datetime.now().strftime('%H:%M')}] {msg}"); save_db(db); st.success("İletildi, Patron inceliyor.")
     if st.button("Çıkış"): st.session_state.login_user=None; st.rerun()
 
 if not st.session_state.login_user: login_page()
@@ -488,3 +539,4 @@ else:
         if db[u].get('onay') or db[u].get('rol')=='admin': ana_uygulama()
         else: payment_screen()
     else: st.session_state.login_user=None; st.rerun()
+        
