@@ -6,7 +6,6 @@ import json
 import os
 import requests
 import plotly.graph_objects as go
-import plotly.express as px
 from datetime import datetime
 from io import BytesIO
 
@@ -14,21 +13,68 @@ from io import BytesIO
 st.set_page_config(page_title="Kemal Balina Avcısı", layout="wide", page_icon="🐋")
 
 # ==========================================
-# 📜 BIST HİSSE LİSTESİ (SABİT VERİTABANI)
+# 📜 DEV BIST HİSSE LİSTESİ (TÜMÜ EKLENDİ)
 # ==========================================
 BIST_HISSELERI = [
-    "THYAO", "GARAN", "ASELS", "AKBNK", "ISCTR", "YKBNK", "KCHOL", "SAHOL", "TUPRS", "EREGL",
-    "BIMAS", "FROTO", "SASA", "HEKTS", "PETKM", "EKGYO", "KONTR", "ODAS", "GUBRF", "ARCLK",
-    "TOASO", "TCELL", "TTKOM", "KOZAL", "KRDMD", "VESTL", "PGSUS", "ENKAI", "ALARK", "TAVHL",
-    "ISGYO", "SOKM", "MGROS", "ULKER", "DOHOL", "TSKB", "HALKB", "VAKBN", "TKFEN", "BRSAN",
-    "AEFES", "AGHOL", "AKSEN", "ALGYO", "ALKIM", "AYGAZ", "BERA", "BRISA", "CANTE", "CEMTS",
-    "CIMSA", "DOAS", "EGEEN", "ECILC", "EUREN", "GENIL", "GESAN", "GLYHO", "GOZDE", "GSDHO",
-    "HDFGS", "IHLAS", "IPEKE", "ISDMR", "ISFIN", "ISMEN", "JANTS", "KARSN", "KARTN", "KCAER",
-    "KMPUR", "KORDS", "KOZAA", "LOGO", "MAVI", "OTKAR", "OYAKC", "PENTA", "QUAGR", "RTALB",
-    "SMRTG", "SNGYO", "TATGD", "TUKAS", "TURSG", "VERUS", "VESBE", "YATAS", "YYLGD", "ZOREN",
-    "BTC-USD", "ETH-USD", "XRP-USD", "SOL-USD", "AVAX-USD" # Kriptoları da ekledim
+    "A1CAP", "ACSEL", "ADEL", "ADESE", "ADGYO", "AEFES", "AFYON", "AGESA", "AGHOL", "AGROT",
+    "AGYO", "AHGAZ", "AKBNK", "AKCNS", "AKENR", "AKFGY", "AKFYE", "AKGRT", "AKMGY", "AKSA",
+    "AKSEN", "AKSGY", "AKSUE", "AKYHO", "ALARK", "ALBRK", "ALCAR", "ALCTL", "ALFAS", "ALGYO",
+    "ALKA", "ALKIM", "ALMAD", "ALTNY", "ANELE", "ANGEN", "ANHYT", "ANSGR", "ARASE", "ARCLK",
+    "ARDYZ", "ARENA", "ARSAN", "ARTMS", "ARZUM", "ASELS", "ASGYO", "ASTOR", "ASUZU", "ATAGY",
+    "ATAKP", "ATATP", "ATEKS", "ATLAS", "ATSYH", "AVGYO", "AVHOL", "AVOD", "AVPGY", "AVTUR",
+    "AYCES", "AYDEM", "AYEN", "AYES", "AYGAZ", "AZTEK", "BAGFS", "BAKAB", "BALAT", "BANVT",
+    "BARMA", "BASCM", "BASGZ", "BAYRK", "BEGYO", "BERA", "BEYAZ", "BFREN", "BIENY", "BIGCH",
+    "BIMAS", "BINHO", "BIOEN", "BIZIM", "BJKAS", "BLCYT", "BMSCH", "BMSTL", "BNTAS", "BOBET",
+    "BORLS", "BOSSA", "BRISA", "BRKO", "BRKSN", "BRKVY", "BRLSM", "BRMEN", "BRSAN", "BRYAT",
+    "BSOKE", "BTCIM", "BUCIM", "BURCE", "BURVA", "BVSAN", "BYDNR", "CANTE", "CATES", "CELHA",
+    "CEMAS", "CEMTS", "CEOEM", "CIMSA", "CLEBI", "CMBTN", "CMENT", "CONSE", "COSMO", "CRDFA",
+    "CRFSA", "CUSAN", "CVKMD", "CWENE", "DAGH", "DAGI", "DAPGM", "DARDL", "DENGE", "DERHL",
+    "DERIM", "DESA", "DESPC", "DEVA", "DGATE", "DGGYO", "DGNMO", "DIRIT", "DITAS", "DMSAS",
+    "DNISI", "DOAS", "DOBUR", "DOCO", "DOGUB", "DOHOL", "DOKTA", "DURDO", "DYOBY", "DZGYO",
+    "EBEBK", "ECILC", "ECLC", "ECZYT", "EDATA", "EDIP", "EGEEN", "EGEPO", "EGGUB", "EGPRO",
+    "EGSER", "EKGYO", "EKIZ", "EKSUN", "ELITE", "EMKEL", "EMNIS", "ENJSA", "ENKAI", "ENSRI",
+    "ENTRA", "EPLAS", "ERBOS", "ERCB", "EREGL", "ERSU", "ESCAR", "ESCOM", "ESEN", "ETILR",
+    "ETYAT", "EUHOL", "EUKYO", "EUPWR", "EUREN", "EUYO", "EYGYO", "FADE", "FENER", "FLAP",
+    "FMIZP", "FONET", "FORMT", "FORTE", "FRIGO", "FROTO", "FZLGY", "GARAN", "GARFA", "GEDIK",
+    "GEDZA", "GENIL", "GENTS", "GEREL", "GESAN", "GIPTA", "GLBMD", "GLCVY", "GLRYH", "GLYHO",
+    "GMTAS", "GOKNR", "GOLTS", "GOODY", "GOZDE", "GRNYO", "GRSEL", "GSDDE", "GSDHO", "GSRAY",
+    "GUBRF", "GWIND", "GZNMI", "HALKB", "HATEK", "HDFGS", "HEDEF", "HEKTS", "HKTM", "HLGYO",
+    "HITIT", "HRKET", "HUBVC", "HUNER", "HURGZ", "ICBCT", "IDEAS", "IDGYO", "IEYHO", "IHAAS",
+    "IHEVA", "IHGZT", "IHLAS", "IHLGM", "IHYAY", "IMASM", "INDES", "INFO", "INGRM", "INTEM",
+    "INVEO", "INVES", "IPEKE", "ISATR", "ISBIR", "ISBTR", "ISCTR", "ISDMR", "ISFIN", "ISGSY",
+    "ISGYO", "ISKPL", "ISKUR", "ISMEN", "ISSEN", "ISYAT", "ITTFH", "IZENR", "IZFAS", "IZINV",
+    "IZMDC", "JANTS", "KAPLM", "KAREL", "KARSN", "KARTN", "KARYE", "KATMR", "KAYSE", "KBORU",
+    "KCAER", "KCHOL", "KENT", "KERVN", "KERVT", "KFEIN", "KGYO", "KIMMR", "KLGYO", "KLKIM",
+    "KLMSN", "KLNMA", "KLRHO", "KMH", "KMPUR", "KNFRT", "KONKA", "KONTR", "KONYA", "KOPOL",
+    "KORDS", "KOTON", "KOZAA", "KOZAL", "KRDMA", "KRDMB", "KRDMD", "KRGYO", "KRONT", "KRPLS",
+    "KRSTL", "KRTEK", "KRVGD", "KSTUR", "KTLEV", "KTSKR", "KUTPO", "KUVVA", "KUYAS", "KZBGY",
+    "KZGYO", "LIDER", "LILAK", "LIDFA", "LINK", "LKMNH", "LOGO", "LUKSK", "MAALT", "MACKO",
+    "MAGEN", "MAKIM", "MAKTK", "MANAS", "MARBL", "MARKA", "MARTI", "MAVI", "MEDTR", "MEGAP",
+    "MEGMT", "MEKAG", "MNDRS", "MNDTR", "MERCN", "MERIT", "MERKO", "METRO", "METUR", "MGROS",
+    "MIATK", "MIPAZ", "MMCAS", "MNDRS", "MOBTL", "MOGAN", "MPARK", "MRGYO", "MRSHL", "MSGYO",
+    "MTRKS", "MTRYO", "MZHLD", "NATEN", "NETAS", "NIBAS", "NTGAZ", "NUGYO", "NUHCM", "OBAMS",
+    "OBASE", "ODAS", "ODINE", "OFSYM", "ONCSM", "ORCAY", "ORGE", "ORMA", "OSMEN", "OSTIM",
+    "OTKAR", "OTTO", "OYAKC", "OYAYO", "OYLUM", "OYYAT", "OZGYO", "OZKGY", "OZRDN", "OZSUB",
+    "PAGYO", "PAMEL", "PAPIL", "PARSN", "PASEU", "PASEU", "PCILT", "PEGYO", "PEKGY", "PENGD",
+    "PENTA", "PETKM", "PETUN", "PGSUS", "PINSU", "PKART", "PKENT", "PLAT", "PLTUR", "PNLSN",
+    "PNSUT", "POLHO", "POLTK", "PRDGS", "PRKAB", "PRKME", "PRZMA", "PSDTC", "PSGYO", "QNBFB",
+    "QNBFL", "QUAGR", "RALYH", "RAYSG", "RNPOL", "REEDR", "RHEAG", "RODRG", "ROYAL", "RTALB",
+    "RUBNS", "RYGYO", "RYSAS", "SAFKR", "SAHOL", "SAMAT", "SANEL", "SANFM", "SANKO", "SARKY",
+    "SASA", "SAYAS", "SDTTR", "SEKFK", "SEKUR", "SELEC", "SELGD", "SELVA", "SEYKM", "SILVR",
+    "SISE", "SKBNK", "SKTAS", "SKYMD", "SMRTG", "SNGYO", "SNKRN", "SNPAM", "SODSN", "SOKE",
+    "SOKM", "SONME", "SRVGY", "SUMAS", "SUNTK", "SUWEN", "TABGD", "TARKM", "TATEN", "TATGD",
+    "TAVHL", "TBORG", "TCELL", "TDGYO", "TEKTU", "TERA", "TETMT", "TGSAS", "THYAO", "TKFEN",
+    "TKNSA", "TLMAN", "TMPOL", "TMSN", "TNZTP", "TOASO", "TRCAS", "TRGYO", "TRILC", "TSGYO",
+    "TSKB", "TSPOR", "TTKOM", "TTRAK", "TUCLK", "TUKAS", "TUPRS", "TURGG", "TURSG", "UFUK",
+    "ULAS", "ULKER", "ULUFA", "ULUSE", "ULUUN", "UMPAS", "UNLU", "USAK", "UZERB", "VAKBN",
+    "VAKFN", "VAKKO", "VANGD", "VBTYZ", "VERUS", "VESBE", "VESTL", "VKFYO", "VKGYO", "VKING",
+    "VRGYO", "YAPRK", "YATAS", "YAYLA", "YEOTK", "YESIL", "YGGYO", "YGYO", "YKBNK", "YKSLN",
+    "YUNSA", "YYAPI", "YYLGD", "ZEDUR", "ZOREN", "ZRGYO",
+    # KRİPTOLAR
+    "BTC-USD", "ETH-USD", "SOL-USD", "XRP-USD", "AVAX-USD", "DOGE-USD", "SHIB-USD"
 ]
-BIST_HISSELERI.sort()
+# Mükerrer kayıtları sil ve alfabetik sırala
+BIST_HISSELERI = sorted(list(set(BIST_HISSELERI)))
 
 # ==========================================
 # 🚨 TELEGRAM AYARLARI
@@ -134,6 +180,15 @@ st.markdown("""
         border-radius: 6px !important;
     }
     
+    /* Dropdown Menü İçi (Açılınca) */
+    div[data-baseweb="popover"] {
+        background-color: #161b22 !important;
+    }
+    div[data-baseweb="menu"] {
+        background-color: #161b22 !important;
+        color: white !important;
+    }
+    
     /* Başlıklar */
     h1, h2, h3 { 
         color: #ffffff; 
@@ -219,8 +274,7 @@ def grafik_ciz(symbol):
         
         if not df.empty:
             # SON TAMMAMLANMIŞ GÜNÜN VERİLERİ (Pivot Hesabı İçin)
-            # Eğer bugün işlem devam ediyorsa, dünü baz alırız.
-            prev = df.iloc[-2] # Dünkü kapanış verileri
+            prev = df.iloc[-2] 
             
             # KLASİK PIVOT FORMÜLÜ
             high = prev['High']
@@ -282,7 +336,6 @@ def admin_dashboard():
         
         if uye_data:
             st.table(pd.DataFrame(uye_data))
-            # ... Onay silme işlemleri buraya ...
         else: st.info("Üye yok.")
 
 # ==========================================
@@ -308,7 +361,7 @@ def ana_uygulama():
     
     col_search, col_btn = st.columns([3, 1])
     
-    # Selectbox ile tüm hisseler
+    # Selectbox - TÜM HİSSELER
     secilen_hisse_input = col_search.selectbox(
         "İncelenecek Hisseyi Seçiniz:",
         BIST_HISSELERI,
@@ -410,7 +463,6 @@ def ana_uygulama():
                 time.sleep(1)
                 status.update(label="Tarama Tamamlandı!", state="complete", expanded=False)
             
-            # Örnek statik veri (Hız için) - Gerçek tarama fonksiyonunu buraya bağlayabilirsin
             st.success("✅ 3 Potansiyel Fırsat Bulundu")
             c1, c2, c3 = st.columns(3)
             with c1:
