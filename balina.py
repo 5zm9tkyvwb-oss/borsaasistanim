@@ -18,7 +18,7 @@ st.set_page_config(page_title="PALA Balina Avcısı", layout="wide", page_icon="
 USDT_ADDRESS = "TV4DK7vckLWJciKSqhvY5hEpcw1Ka522AQ"
 
 # ==========================================
-# 📜 BIST HİSSE LİSTESİ
+# 📜 BIST HİSSE LİSTESİ (TÜMÜ)
 # ==========================================
 BIST_HISSELERI = [
     "A1CAP", "ACSEL", "ADEL", "ADESE", "ADGYO", "AEFES", "AFYON", "AGESA", "AGHOL", "AGROT",
@@ -184,6 +184,18 @@ st.markdown("""
     }
     div.stButton > button:hover { transform: scale(1.02) !important; box-shadow: 0 0 20px #00fff9 !important; }
     
+    /* --- EN ÇOK YÜKSELEN/DÜŞEN TABLOLARI --- */
+    .top-list-box {
+        background: rgba(0,0,0,0.5);
+        padding: 10px;
+        border-radius: 8px;
+        border-top: 3px solid #00fff9;
+        margin-bottom: 5px;
+    }
+    .list-title { color: #00fff9; font-weight: bold; margin-bottom: 5px; text-transform: uppercase; font-size: 14px; }
+    .list-item { font-size: 13px; border-bottom: 1px solid #333; padding: 3px 0; display: flex; justify-content: space-between; }
+    .pos { color: #38ef7d; } .neg { color: #ef473a; } .spek { color: #ff00ff; }
+    
     /* --- STICKER --- */
     .pala-sticker { 
         position: fixed; top: 70px; right: 25px; 
@@ -224,8 +236,50 @@ def grafik_ciz(symbol):
             return fig, df.iloc[-1]['Close'], pivot, (2*pivot)-df.iloc[-2]['Low'], rsi.iloc[-1]
     except: return None, None, None, None, None
 
+# --- PİYASA TARAMA (TOP GAINERS/LOSERS) ---
+@st.cache_data(ttl=3600)
+def get_market_analysis():
+    # Hız için kısıtlı bir liste kullanıyoruz, gerçek uygulamada veritabanı gerekir.
+    candidates = ["THYAO.IS", "ASELS.IS", "GARAN.IS", "AKBNK.IS", "TUPRS.IS", "SASA.IS", "HEKTS.IS", "EREGL.IS", "KCHOL.IS", "BIMAS.IS", "EKGYO.IS", "ODAS.IS", "KONTR.IS", "GUBRF.IS", "FROTO.IS", "ASTOR.IS", "REEDR.IS", "EUPWR.IS", "GESAN.IS", "SMRTG.IS", "HDFGS.IS", "ISCTR.IS", "YKBNK.IS", "PETKM.IS", "KOZAL.IS", "KRDMD.IS", "VESTL.IS", "ARCLK.IS", "TOASO.IS", "TTKOM.IS", "TCELL.IS", "SOKM.IS", "MGROS.IS", "ALFAS.IS", "CANTE.IS", "CVKMD.IS", "KCAER.IS", "OYAKC.IS", "EGEEN.IS", "DOAS.IS"]
+    
+    weekly_data = []
+    monthly_data = []
+    
+    for s in candidates:
+        try:
+            # 1 Aylık veri çek
+            df = yf.download(s, period="1mo", interval="1d", progress=False)
+            if hasattr(df.columns, 'levels'): df.columns = df.columns.get_level_values(0)
+            
+            if len(df) > 20:
+                son = df['Close'].iloc[-1]
+                
+                # Haftalık (5 gün)
+                w_start = df['Close'].iloc[-5]
+                w_change = ((son - w_start) / w_start) * 100
+                
+                # Aylık (20 gün)
+                m_start = df['Close'].iloc[0]
+                m_change = ((son - m_start) / m_start) * 100
+                
+                # Spek Skoru (Volatilite: (High-Low)/Open)
+                volatility = ((df['High'].iloc[-1] - df['Low'].iloc[-1]) / df['Open'].iloc[-1]) * 100
+                
+                sym = s.replace(".IS","")
+                weekly_data.append({"Sembol": sym, "Degisim": w_change, "Fiyat": son, "Volatilite": volatility})
+                monthly_data.append({"Sembol": sym, "Degisim": m_change, "Fiyat": son})
+        except: pass
+        
+    # Sıralama
+    w_gainers = sorted(weekly_data, key=lambda x: x['Degisim'], reverse=True)[:5]
+    w_losers = sorted(weekly_data, key=lambda x: x['Degisim'])[:5]
+    m_gainers = sorted(monthly_data, key=lambda x: x['Degisim'], reverse=True)[:5]
+    spek_list = sorted(weekly_data, key=lambda x: x['Volatilite'], reverse=True)[:5]
+    
+    return w_gainers, m_gainers, w_losers, spek_list
+
 # ==========================================
-# 👑 ADMIN PANELİ (ÜYE YÖNETİMİ & MESAJLAR)
+# 👑 ADMIN PANELİ
 # ==========================================
 def admin_dashboard():
     st.sidebar.markdown("---")
@@ -235,8 +289,6 @@ def admin_dashboard():
     
     if menu == "Üye Yönetimi":
         st.subheader("👥 KULLANICI LİSTESİ")
-        
-        # Kullanıcıları Tabloya Dök
         for k, v in db.items():
             if k != "admin":
                 col1, col2, col3, col4 = st.columns([2, 2, 2, 2])
@@ -246,14 +298,11 @@ def admin_dashboard():
                     else: st.warning("ONAY BEKLİYOR ⏳")
                 with col3:
                     if not v.get('onay'):
-                        if st.button(f"ONAYLA ✅", key=f"app_{k}"):
-                            db[k]['onay'] = True; save_db(db); st.rerun()
+                        if st.button(f"ONAYLA ✅", key=f"app_{k}"): db[k]['onay'] = True; save_db(db); st.rerun()
                     else:
-                        if st.button(f"ENGELLE ⛔", key=f"ban_{k}"):
-                            db[k]['onay'] = False; save_db(db); st.rerun()
+                        if st.button(f"ENGELLE ⛔", key=f"ban_{k}"): db[k]['onay'] = False; save_db(db); st.rerun()
                 with col4:
-                    if st.button(f"SİL 🗑️", key=f"del_{k}"):
-                        del db[k]; save_db(db); st.rerun()
+                    if st.button(f"SİL 🗑️", key=f"del_{k}"): del db[k]; save_db(db); st.rerun()
                 st.divider()
 
     elif menu == "Gelen Bildirimler":
@@ -264,67 +313,43 @@ def admin_dashboard():
                 msg_found = True
                 with st.expander(f"✉️ {v.get('isim')} ({k}) - {len(v['mesajlar'])} Mesaj", expanded=True):
                     for m in v['mesajlar']: st.info(m)
-                    if st.button(f"Mesajları Temizle ({k})", key=f"clr_{k}"):
-                        db[k]['mesajlar'] = []; save_db(db); st.rerun()
+                    if st.button(f"Temizle ({k})", key=f"clr_{k}"): db[k]['mesajlar'] = []; save_db(db); st.rerun()
         if not msg_found: st.info("Yeni bildirim yok.")
 
     elif menu == "Manuel Üye Ekle":
         st.subheader("➕ MANUEL ÜYE EKLE")
         c1, c2 = st.columns(2)
-        n_user = c1.text_input("Kullanıcı Adı (Nick)")
+        n_user = c1.text_input("Nick")
         n_pass = c2.text_input("Şifre")
-        n_name = st.text_input("İsim Soyisim")
-        if st.button("Kullanıcıyı Oluştur"):
+        n_name = st.text_input("İsim")
+        if st.button("Oluştur"):
             if n_user and n_pass:
                 db[n_user] = {"sifre": n_pass, "isim": n_name, "onay": True, "rol": "user", "mesajlar": [], "portfoy": []}
-                save_db(db); st.success("Kullanıcı eklendi ve onaylandı.")
+                save_db(db); st.success("Eklendi.")
 
 # ==========================================
-# 💰 ÖDEME & ONAY BEKLEME EKRANI
+# 💰 ÖDEME EKRANI
 # ==========================================
 def payment_screen():
-    u = st.session_state.login_user
-    db = load_db()
-    
-    st.markdown("""
-    <div style="text-align:center; padding-top:20px;">
-        <h1 style="color:#ff00ff; font-size:50px;">⛔ ERİŞİM KISITLI ⛔</h1>
-        <p style="font-size:20px;">HESABINIZ HENÜZ AKTİF DEĞİL.</p>
-        <p>Terminale erişmek için aşağıdaki adrese ödeme yapıp bildirim gönderin.</p>
-    </div>
-    """, unsafe_allow_html=True)
-    
-    # Cüzdan Adresi
-    st.markdown(f"""
-    <div class="wallet-box">
-        <h3 style="color:#00fff9;">💎 USDT (TRC20) CÜZDAN ADRESİ</h3>
-        <div class="wallet-addr">{USDT_ADDRESS}</div>
-        <p style="margin-top:10px; color:#aaa;">Yalnızca TRC20 ağından gönderim yapınız.</p>
-    </div>
-    """, unsafe_allow_html=True)
-    
-    # Bildirim Alanı
+    u = st.session_state.login_user; db = load_db()
+    st.markdown("""<div style="text-align:center; padding-top:20px;"><h1 style="color:#ff00ff;">⛔ ERİŞİM KISITLI ⛔</h1><p>HESABINIZ HENÜZ AKTİF DEĞİL.</p></div>""", unsafe_allow_html=True)
+    st.markdown(f"""<div class="wallet-box"><h3 style="color:#00fff9;">💎 USDT (TRC20) CÜZDAN</h3><div class="wallet-addr">{USDT_ADDRESS}</div></div>""", unsafe_allow_html=True)
     st.subheader("📩 Ödeme Bildirimi")
     col1, col2 = st.columns([3, 1])
-    with col1:
-        tx_msg = st.text_area("Açıklama / TXID", placeholder="Örn: 500 USDT gönderdim. TXID: T9yX...")
+    with col1: tx_msg = st.text_area("Açıklama / TXID")
     with col2:
         st.markdown("<br><br>", unsafe_allow_html=True)
-        if st.button("BİLDİRİMİ GÖNDER 🚀"):
+        if st.button("GÖNDER 🚀"):
             if tx_msg:
                 tarih = datetime.now().strftime("%d/%m %H:%M")
                 if "mesajlar" not in db[u]: db[u]["mesajlar"] = []
                 db[u]["mesajlar"].append(f"[{tarih}] {tx_msg}")
-                save_db(db)
-                st.success("Bildirim admine iletildi. İnceleniyor...")
-                send_telegram(f"💰 ÖDEME BİLDİRİMİ: {u} -> {tx_msg}")
-    
+                save_db(db); st.success("İletildi."); send_telegram(f"💰 ÖDEME: {u} -> {tx_msg}")
     st.divider()
-    if st.button("ÇIKIŞ YAP 🔙"):
-        st.session_state.login_user = None; st.rerun()
+    if st.button("ÇIKIŞ YAP 🔙"): st.session_state.login_user = None; st.rerun()
 
 # ==========================================
-# 📈 ANA UYGULAMA (SADECE ONAYLILAR)
+# 📈 ANA UYGULAMA
 # ==========================================
 def ana_uygulama():
     st.markdown("""
@@ -336,17 +361,48 @@ def ana_uygulama():
     """, unsafe_allow_html=True)
 
     user = st.session_state.login_user; db = st.session_state.db
-    
-    # Header
     c1, c2 = st.columns([8, 2])
     c1.markdown(f"<h1 style='color:#00fff9;'>🦈 PALA BALİNA AVCISI</h1>", unsafe_allow_html=True)
     c1.markdown(f"Kaptan: **{db[user].get('isim')}**")
     if c2.button("GÜVENLİ ÇIKIŞ"): st.session_state.login_user=None; st.rerun()
-    
     if db[user].get('rol') == 'admin': admin_dashboard()
     
     st.markdown("---")
+
+    # --- YENİ EKLENEN BÖLÜM: 4'LÜ PİYASA TARAMA ---
+    st.markdown("### 📡 PİYASA RÖNTGENİ")
+    w_gain, m_gain, w_lose, spek = get_market_analysis()
+    
+    col_w, col_m, col_l, col_s = st.columns(4)
+    
+    with col_w:
+        st.markdown(f"<div class='top-list-box' style='border-color:#38ef7d;'><div class='list-title'>🟢 HAFTALIK KRALLAR</div>", unsafe_allow_html=True)
+        for i in w_gain:
+            st.markdown(f"<div class='list-item'><span>{i['Sembol']}</span><span class='pos'>%{i['Degisim']:.1f}</span></div>", unsafe_allow_html=True)
+        st.markdown("</div>", unsafe_allow_html=True)
+
+    with col_m:
+        st.markdown(f"<div class='top-list-box' style='border-color:#38ef7d;'><div class='list-title'>🗓️ AYLIK ROKETLER</div>", unsafe_allow_html=True)
+        for i in m_gain:
+            st.markdown(f"<div class='list-item'><span>{i['Sembol']}</span><span class='pos'>%{i['Degisim']:.1f}</span></div>", unsafe_allow_html=True)
+        st.markdown("</div>", unsafe_allow_html=True)
+
+    with col_l:
+        st.markdown(f"<div class='top-list-box' style='border-color:#ef473a;'><div class='list-title'>🔴 HAFTALIK KAYIPLAR</div>", unsafe_allow_html=True)
+        for i in w_lose:
+            st.markdown(f"<div class='list-item'><span>{i['Sembol']}</span><span class='neg'>%{i['Degisim']:.1f}</span></div>", unsafe_allow_html=True)
+        st.markdown("</div>", unsafe_allow_html=True)
+        
+    with col_s:
+        st.markdown(f"<div class='top-list-box' style='border-color:#ff00ff;'><div class='list-title'>🎰 SPEK / VOLATİL</div>", unsafe_allow_html=True)
+        for i in spek:
+            st.markdown(f"<div class='list-item'><span>{i['Sembol']}</span><span class='spek'>⚡ {i['Volatilite']:.1f}</span></div>", unsafe_allow_html=True)
+        st.markdown("</div>", unsafe_allow_html=True)
+
+    st.markdown("---")
+
     # HİSSE SORGULAMA
+    st.markdown("### 🔍 DETAYLI ANALİZ")
     sc, sb = st.columns([3, 1])
     hisse = sc.selectbox("Hisse Seç:", BIST_HISSELERI)
     if sb.button("ANALİZ ET 🚀"): st.session_state.secilen_hisse = f"{hisse}.IS" if "USD" not in hisse else hisse; st.rerun()
@@ -364,81 +420,45 @@ def ana_uygulama():
         if st.button("Kapat"): st.session_state.secilen_hisse=None; st.rerun()
 
 # ==========================================
-# 🔐 GİRİŞ & KAYIT SİSTEMİ
+# 🔐 GİRİŞ & KAYIT
 # ==========================================
 def login_page():
     st.markdown("""<div style="text-align:center; padding:50px;"><h1 class="neon-title">PALA BALİNA</h1><p style="color:#00fff9;">MEMBERSHIP ACCESS TERMINAL</p></div>""", unsafe_allow_html=True)
-    
     tab1, tab2 = st.tabs(["🔑 GİRİŞ YAP", "📝 ÜYE OL"])
     
-    with tab1: # LOGIN
+    with tab1:
         col1, col2, col3 = st.columns([1,2,1])
         with col2:
             k = st.text_input("Kullanıcı Adı", key="l_user")
             s = st.text_input("Şifre", type="password", key="l_pass")
             if st.button("TERMİNALE GİRİŞ ⚡", type="primary"):
                 db = load_db()
-                if k in db and db[k]['sifre'] == s:
-                    st.session_state.login_user = k
-                    st.rerun()
-                else: st.error("Hatalı kullanıcı adı veya şifre!")
+                if k in db and db[k]['sifre'] == s: st.session_state.login_user = k; st.rerun()
+                else: st.error("Hatalı!")
 
-    with tab2: # REGISTER
+    with tab2:
         col1, col2, col3 = st.columns([1,2,1])
         with col2:
             st.markdown("### Yeni Üyelik Formu")
-            r_user = st.text_input("Kullanıcı Adı Belirle", key="r_user")
+            r_user = st.text_input("Kullanıcı Adı", key="r_user")
             r_name = st.text_input("Ad Soyad", key="r_name")
-            r_pass = st.text_input("Şifre Belirle", type="password", key="r_pass")
-            
+            r_pass = st.text_input("Şifre", type="password", key="r_pass")
             if st.button("KAYDI TAMAMLA ✅"):
                 db = load_db()
-                if r_user in db:
-                    st.warning("Bu kullanıcı adı zaten alınmış!")
+                if r_user in db: st.warning("Alınmış!")
                 elif r_user and r_pass:
-                    # YENİ ÜYE (ONAYSIZ BAŞLAR)
-                    db[r_user] = {
-                        "sifre": r_pass, 
-                        "isim": r_name, 
-                        "onay": False, # Otomatik onay YOK
-                        "rol": "user", 
-                        "mesajlar": [], 
-                        "portfoy": []
-                    }
-                    save_db(db)
-                    st.success("Kayıt başarılı! Giriş sekmesinden giriş yapın.")
-                    send_telegram(f"🆕 YENİ ÜYE KAYDI: {r_user} ({r_name})")
-                else:
-                    st.error("Lütfen tüm alanları doldurun.")
-                    
-    # Admin Kurtarma (Gizli)
+                    db[r_user] = {"sifre": r_pass, "isim": r_name, "onay": False, "rol": "user", "mesajlar": [], "portfoy": []}
+                    save_db(db); st.success("Kaydolundu."); send_telegram(f"🆕 ÜYE: {r_user}")
+    
     if st.checkbox("Admin Reset"):
         if st.button("Reset"):
              st.session_state.db = {"admin": {"sifre": "pala500", "isim": "Patron", "onay": True, "rol": "admin", "mesajlar": [], "loglar": [], "portfoy": []}}
              save_db(st.session_state.db); st.success("Resetlendi.")
 
-# --- YÖNLENDİRME MANTIĞI ---
-if not st.session_state.login_user:
-    login_page()
+if not st.session_state.login_user: login_page()
 else:
-    # Kullanıcı giriş yapmış, verilerini çek
-    user_id = st.session_state.login_user
-    db = load_db()
-    
-    if user_id in db:
-        user_data = db[user_id]
-        
-        # 1. Admin ise her yere girer
-        if user_data.get('rol') == 'admin':
-            ana_uygulama()
-            
-        # 2. Normal üye ise ve ONAYLI ise girer
-        elif user_data.get('onay') == True:
-            ana_uygulama()
-            
-        # 3. Normal üye ama ONAYSIZ ise Ödeme Ekranına gider
-        else:
-            payment_screen()
-    else:
-        st.session_state.login_user = None
-        st.rerun()
+    u_id = st.session_state.login_user; db = load_db()
+    if u_id in db:
+        if db[u_id].get('rol') == 'admin' or db[u_id].get('onay'): ana_uygulama()
+        else: payment_screen()
+    else: st.session_state.login_user = None; st.rerun()
