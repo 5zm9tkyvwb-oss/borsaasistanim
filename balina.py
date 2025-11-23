@@ -151,6 +151,10 @@ st.markdown("""
         margin-bottom: 10px;
         font-size: 12px;
     }
+    
+    /* Sidebar Özelleştirme */
+    section[data-testid="stSidebar"] { background-color: #0b1116 !important; border-right: 1px solid #00fff9; }
+    .sidebar-header { color: #00fff9; font-weight: bold; font-size: 18px; margin-bottom: 10px; border-bottom: 1px solid #ff00ff; padding-bottom: 5px; }
     </style>
     <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&display=swap" rel="stylesheet">
 """, unsafe_allow_html=True)
@@ -169,7 +173,7 @@ def render_disclaimer():
     </div>
     """, unsafe_allow_html=True)
 
-# --- GÜVENLİ VERİ ÇEKME ---
+# --- GÜVENLİ VERİ ÇEKME (HATA DÜZELTİLDİ) ---
 def get_live_rates():
     try:
         tickers = ["TRY=X", "EURTRY=X", "GC=F", "SI=F", "BZ=F", "BTC-USD", "ETH-USD"]
@@ -177,7 +181,19 @@ def get_live_rates():
         if not data.empty:
             last = data.iloc[-1]
             usd = last.get('TRY=X', 34.50)
-            return usd, last.get('EURTRY=X', 37.20), (last.get('GC=F', 2600) * usd) / 31.1035, (last.get('SI=F', 30) * usd) / 31.1035, last.get('BZ=F', 75), last.get('BTC-USD', 98000), last.get('ETH-USD', 3200)
+            
+            # Nan kontrolü (Eğer veri çekilemezse varsayılan kullan)
+            if pd.isna(usd): usd = 34.50
+            eur = last.get('EURTRY=X', 37.20)
+            if pd.isna(eur): eur = 37.20
+            
+            ga_raw = last.get('GC=F', 2600)
+            ga = (ga_raw * usd) / 31.1035 if not pd.isna(ga_raw) else 3000.0
+            
+            gg_raw = last.get('SI=F', 30)
+            gg = (gg_raw * usd) / 31.1035 if not pd.isna(gg_raw) else 35.0
+            
+            return usd, eur, ga, gg, last.get('BZ=F', 75), last.get('BTC-USD', 98000), last.get('ETH-USD', 3200)
         return 34.50, 37.20, 2950.0, 34.0, 75.0, 98000.0, 3200.0
     except: return 34.50, 37.20, 2950.0, 34.0, 75.0, 98000.0, 3200.0
 
@@ -260,11 +276,21 @@ def grafik_ciz(symbol, show_sma, show_bb):
     except: return None, None, None, None, None, None, None
 
 def admin_dashboard():
-    st.sidebar.title("👑 YÖNETİM"); menu = st.sidebar.radio("Menü:", ["Üyeler", "Duyuru"]); db = load_db()
-    if menu == "Üyeler":
+    st.sidebar.title("👑 YÖNETİM"); menu = st.sidebar.radio("Menü:", ["Üye İstatistik", "Üyeler", "Duyuru"]); db = load_db()
+    
+    if menu == "Üye İstatistik":
+        total = len(db)-1
+        vip = sum(1 for k, v in db.items() if k != "admin" and v.get('onay'))
+        trial = total - vip
+        c1, c2, c3 = st.columns(3)
+        c1.metric("TOPLAM ÜYE", total)
+        c2.metric("💎 VIP ÜYELER", vip)
+        c3.metric("⏳ DENEME SÜRECİ", trial)
+        
+    elif menu == "Üyeler":
         for k, v in db.items():
             if k != "admin":
-                with st.expander(f"{v.get('isim')} ({k}) - {'✅' if v.get('onay') else '⏳'}"):
+                with st.expander(f"{v.get('isim')} ({k}) - {'✅ VIP' if v.get('onay') else '⏳ DENEME'}"):
                     c1, c2 = st.columns(2)
                     if c1.button("ONAYLA", key=f"a_{k}"): db[k]['onay']=True; save_db(db); st.rerun()
                     if c2.button("SİL", key=f"d_{k}"): del db[k]; save_db(db); st.rerun()
@@ -276,6 +302,23 @@ def ana_uygulama(kalan_sure_dk=None):
     db = load_db(); user = st.session_state.login_user
     if user not in db: st.session_state.login_user = None; st.rerun()
     
+    st.sidebar.markdown("<div class='sidebar-header'>🧮 PALA HESAP MAKİNESİ</div>", unsafe_allow_html=True)
+    with st.sidebar.expander("Kâr/Zarar Hesapla", expanded=False):
+        bakiye = st.number_input("Bakiye (TL)", value=10000)
+        giris_f = st.number_input("Giriş Fiyatı", value=10.0)
+        hedef_f = st.number_input("Hedef Fiyat", value=11.0)
+        if giris_f > 0:
+            lot = int(bakiye / giris_f)
+            potansiyel_kar = (hedef_f - giris_f) * lot
+            st.info(f"Alınabilir Lot: {lot}")
+            st.success(f"Potansiyel Kâr: {potansiyel_kar:.2f} TL")
+
+    wg, mg, wl, sp, radar = get_market_analysis() 
+    st.sidebar.markdown("<br><div class='sidebar-header'>📡 PALA RADARI (CANLI)</div>", unsafe_allow_html=True)
+    if radar:
+        for r in radar: st.sidebar.markdown(f"<span style='color:#38ef7d; font-size:12px;'>{r}</span>", unsafe_allow_html=True)
+    else: st.sidebar.info("Tarama yapılıyor...")
+
     if kalan_sure_dk is not None:
         dk = int(kalan_sure_dk); sn = int((kalan_sure_dk - dk) * 60)
         st.markdown(f"""<div class="trial-counter">⏳ DENEME: {dk:02d}:{sn:02d}</div>""", unsafe_allow_html=True)
@@ -295,7 +338,6 @@ def ana_uygulama(kalan_sure_dk=None):
                 db[user]["mesajlar"].append(f"ÖDEME: {tx}"); save_db(db); st.success("İletildi!")
 
     st.markdown("---")
-    wg, mg, wl, sp = get_market_analysis()
     if wg:
         c1, c2, c3, c4 = st.columns(4)
         c1.markdown(f"<div class='top-list-box' style='border-color:#38ef7d;'><div class='list-title'>🟢 HAFTALIK KRALLAR</div>{''.join([f'<div class=list-item><span>{i["Sembol"]}</span><span class=pos>%{i["Degisim"]:.1f}</span></div>' for i in wg])}</div>", unsafe_allow_html=True)
@@ -327,7 +369,7 @@ def ana_uygulama(kalan_sure_dk=None):
         else: st.error("Veri Yok.")
         if st.button("Kapat"): st.session_state.secilen_hisse=None; st.rerun()
     
-    # YASAL UYARIYI ANA EKRANDA DA GÖSTER
+    # YASAL UYARI ANA EKRANDA DA OLSUN
     render_disclaimer()
 
 def payment_screen():
@@ -361,13 +403,14 @@ def login_page():
                     db[u] = {"sifre": p, "isim": n, "onay": False, "rol": "user", "mesajlar": [], "portfoy": [], "kayit_tarihi": time.time()}
                     save_db(db); st.success("Kayıt Başarılı!"); send_telegram(f"🆕 ÜYE: {u}")
         st.markdown("</div>", unsafe_allow_html=True)
-        
-        # YASAL UYARI BURAYA DA EKLENDİ
-        render_disclaimer()
+    
+    # GİRİŞ EKRANI YASAL UYARI
+    render_disclaimer()
 
     if st.checkbox("Admin Reset"):
         if st.button("Reset"): st.session_state.db = {"admin": {"sifre": "pala500", "isim": "Patron", "onay": True, "rol": "admin", "mesajlar": [], "loglar": [], "portfoy": [], "kayit_tarihi": time.time()}}; save_db(st.session_state.db); st.success("Resetlendi.")
 
+# --- YETKİLENDİRME ---
 if not st.session_state.login_user:
     login_page()
 else:
