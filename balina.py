@@ -106,7 +106,7 @@ if 'login_user' not in st.session_state: st.session_state.login_user = None
 if 'secilen_hisse' not in st.session_state: st.session_state.secilen_hisse = None
 if 'odeme_modu' not in st.session_state: st.session_state.odeme_modu = False
 
-# --- TASARIM ---
+# --- TASARIM (NEON CYBERPUNK) ---
 st.markdown("""
     <style>
     .stApp { background-color: #050a14 !important; background-image: radial-gradient(rgba(0, 255, 249, 0.1) 1px, transparent 1px); background-size: 50px 50px; color: #e6e6e6 !important; font-family: 'Orbitron', sans-serif; }
@@ -117,8 +117,10 @@ st.markdown("""
     @keyframes blink { 50% { border-color: red; color: red; } }
     .hero-container { padding: 40px; background: rgba(0,0,0,0.4); border-radius: 20px; border: 1px solid #00fff9; margin-bottom: 20px; }
     .hero-title { font-size: 40px; font-weight: 900; background: -webkit-linear-gradient(#00fff9, #ff00ff); -webkit-background-clip: text; -webkit-text-fill-color: transparent; margin-bottom: 10px; }
+    .hero-subtitle { font-size: 18px; color: #e0e0e0; margin-bottom: 20px; line-height: 1.5; }
     .feature-box { background: rgba(255, 255, 255, 0.05); padding: 15px; border-radius: 10px; border-left: 4px solid #ff00ff; margin-bottom: 10px; }
     .feature-title { color: #00fff9; font-weight: bold; font-size: 16px; margin-bottom: 5px;}
+    .feature-desc { color: #aaa; font-size: 14px; }
     .login-container { background: rgba(0,0,0,0.8); padding: 30px; border-radius: 20px; border: 2px solid #ff00ff; box-shadow: 0 0 30px rgba(255, 0, 255, 0.3); }
     .top-list-box { background: rgba(0,0,0,0.5); padding: 10px; border-radius: 8px; border-top: 3px solid #00fff9; margin-bottom: 5px; }
     .list-item { font-size: 13px; border-bottom: 1px solid #333; padding: 3px 0; display: flex; justify-content: space-between; }
@@ -129,28 +131,55 @@ st.markdown("""
     div.stButton > button { background: linear-gradient(90deg, #00fff9, #ff00ff) !important; color: #000 !important; border: none !important; font-weight: 800 !important; }
     .ai-box { background: rgba(0, 255, 249, 0.05); border: 1px solid #00fff9; padding: 15px; border-radius: 10px; margin-top: 10px; }
     
-    /* YASAL UYARI */
+    /* YASAL UYARI KUTUSU */
     .disclaimer-box {
         margin-top: 50px;
-        margin-bottom: 20px;
-        padding: 15px;
-        background-color: rgba(0,0,0,0.8);
-        border-top: 2px solid #333;
-        color: #666;
+        padding: 20px;
+        background-color: #000;
+        border-top: 1px solid #333;
+        color: #555;
         font-size: 11px;
+        text-align: justify;
+        font-family: sans-serif;
+        line-height: 1.4;
+    }
+    .disclaimer-title {
+        color: #888;
+        font-weight: bold;
+        display: block;
         text-align: center;
-        font-family: monospace;
+        margin-bottom: 10px;
+        font-size: 12px;
     }
     </style>
     <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&display=swap" rel="stylesheet">
 """, unsafe_allow_html=True)
 
+# --- YASAL UYARI FONKSİYONU ---
+def render_disclaimer():
+    st.markdown("""
+    <div class="disclaimer-box">
+        <span class="disclaimer-title">⚠️ YASAL UYARI & SORUMLULUK REDDİ</span>
+        Bu uygulama ("Pala Balina Avcısı"), kullanıcılara finansal piyasalarla ilgili teknik verileri görselleştirmek ve takip etmek amacıyla geliştirilmiş bir simülasyon ve analiz aracıdır. <br><br>
+        <strong>1. Yatırım Tavsiyesi Değildir:</strong> Burada yer alan hiçbir bilgi, grafik, sinyal, yorum veya analiz; yatırım danışmanlığı kapsamında değildir. Yatırım danışmanlığı hizmeti; aracı kurumlar, portföy yönetim şirketleri, mevduat kabul etmeyen bankalar ile müşteri arasında imzalanacak yatırım danışmanlığı sözleşmesi çerçevesinde sunulmaktadır. Sadece burada yer alan bilgilere dayanılarak yatırım kararı verilmesi, beklentilerinize uygun sonuçlar doğurmayabilir.<br>
+        <strong>2. Veri Gecikmesi:</strong> Sunulan veriler anlık olmayabilir veya gecikmeli olabilir. Piyasa koşulları nedeniyle verilerde sapmalar yaşanabilir.<br>
+        <strong>3. Sorumluluk Reddi:</strong> Uygulamanın kullanımından doğabilecek doğrudan veya dolaylı zararlardan uygulama geliştiricisi veya yöneticileri sorumlu tutulamaz. Kullanıcı, tüm finansal kararlarının sorumluluğunun kendisine ait olduğunu kabul eder.<br>
+        <br>
+        <center>© 2025 PALA BALİNA AVCISI | LİSANSLI YAZILIM | TÜM HAKLARI SAKLIDIR</center>
+    </div>
+    """, unsafe_allow_html=True)
+
+# --- GÜVENLİ VERİ ÇEKME ---
 def get_live_rates():
     try:
-        data = yf.download(["TRY=X", "EURTRY=X", "GC=F", "SI=F", "BZ=F", "BTC-USD", "ETH-USD"], period="1d", progress=False)['Close'].iloc[-1]
-        usd = data['TRY=X']; eur = data['EURTRY=X']
-        return usd, eur, (data['GC=F']*usd)/31.1035, (data['SI=F']*usd)/31.1035, data['BZ=F'], data['BTC-USD'], data['ETH-USD']
-    except: return 34.5, 37.2, 2950, 34, 75, 98000, 3200
+        tickers = ["TRY=X", "EURTRY=X", "GC=F", "SI=F", "BZ=F", "BTC-USD", "ETH-USD"]
+        data = yf.download(tickers, period="1d", progress=False)['Close']
+        if not data.empty:
+            last = data.iloc[-1]
+            usd = last.get('TRY=X', 34.50)
+            return usd, last.get('EURTRY=X', 37.20), (last.get('GC=F', 2600) * usd) / 31.1035, (last.get('SI=F', 30) * usd) / 31.1035, last.get('BZ=F', 75), last.get('BTC-USD', 98000), last.get('ETH-USD', 3200)
+        return 34.50, 37.20, 2950.0, 34.0, 75.0, 98000.0, 3200.0
+    except: return 34.50, 37.20, 2950.0, 34.0, 75.0, 98000.0, 3200.0
 
 @st.cache_data(ttl=1800)
 def get_market_analysis():
@@ -165,12 +194,18 @@ def get_market_analysis():
                     w_ch = ((son - df['Close'].iloc[-5])/df['Close'].iloc[-5])*100
                     m_ch = ((son - df['Close'].iloc[0])/df['Close'].iloc[0])*100
                     vol = ((df['High'].iloc[-1]-df['Low'].iloc[-1])/df['Open'].iloc[-1])*100
-                    hacim_son = df['Volume'].iloc[-1]; hacim_ort = df['Volume'].rolling(10).mean().iloc[-1]
-                    if hacim_son > hacim_ort * 2: radar.append(f"🚨 {s.replace('.IS','')} (+%{w_ch:.1f})")
+                    
+                    hacim_son = df['Volume'].iloc[-1]
+                    hacim_ort = df['Volume'].rolling(10).mean().iloc[-1]
+                    if hacim_son > hacim_ort * 2:
+                        radar.append(f"🚨 {s.replace('.IS','')} (+%{w_ch:.1f})")
+
                     w.append({"Sembol": s.replace(".IS",""), "Degisim": w_ch, "Fiyat": son, "Volatilite": vol})
                     m.append({"Sembol": s.replace(".IS",""), "Degisim": m_ch, "Fiyat": son})
             except: continue
+        
         if not w: return [], [], [], [], []
+        
         return (sorted(w, key=lambda x:x['Degisim'], reverse=True)[:5], 
                 sorted(m, key=lambda x:x['Degisim'], reverse=True)[:5], 
                 sorted(w, key=lambda x:x['Degisim'])[:5], 
@@ -188,53 +223,48 @@ def grafik_ciz(symbol, show_sma, show_bb):
             df['STD'] = df['Close'].rolling(window=20).std()
             df['Upper'] = df['SMA20'] + (df['STD'] * 2)
             df['Lower'] = df['SMA20'] - (df['STD'] * 2)
-            delta = df['Close'].diff(); gain = (delta.where(delta > 0, 0)).rolling(14).mean(); loss = (-delta.where(delta < 0, 0)).rolling(14).mean()
-            rsi = 100 - (100 / (1 + (gain/loss))); rsi_val = rsi.iloc[-1]
+            
+            delta = df['Close'].diff()
+            gain = (delta.where(delta > 0, 0)).rolling(14).mean()
+            loss = (-delta.where(delta < 0, 0)).rolling(14).mean()
+            rsi = 100 - (100 / (1 + (gain/loss)))
+            rsi_val = rsi.iloc[-1]
             pivot = (df.iloc[-2]['High'] + df.iloc[-2]['Low'] + df.iloc[-2]['Close']) / 3
+            
             fig = go.Figure(data=[go.Candlestick(x=df.index, open=df['Open'], high=df['High'], low=df['Low'], close=df['Close'], name="Fiyat")])
+            
             if show_sma:
                 fig.add_trace(go.Scatter(x=df.index, y=df['SMA20'], line=dict(color='orange', width=1), name='SMA 20'))
                 fig.add_trace(go.Scatter(x=df.index, y=df['SMA50'], line=dict(color='blue', width=1), name='SMA 50'))
+            
             if show_bb:
                 fig.add_trace(go.Scatter(x=df.index, y=df['Upper'], line=dict(color='rgba(255, 255, 255, 0.3)', width=1), name='BB Üst'))
                 fig.add_trace(go.Scatter(x=df.index, y=df['Lower'], line=dict(color='rgba(255, 255, 255, 0.3)', width=1), fill='tonexty', name='BB Alt'))
+
             fig.add_hline(y=pivot, line_dash="dot", line_color="#00fff9", annotation_text="PIVOT")
             fig.update_layout(template="plotly_dark", plot_bgcolor='rgba(0,0,0,0)', paper_bgcolor='rgba(0,0,0,0)', title=f"{symbol} ANALİZİ", height=500)
             
-            fig_gauge = go.Figure(go.Indicator(mode = "gauge+number+delta", value = rsi_val, domain = {'x': [0, 1], 'y': [0, 1]}, title = {'text': "RSI GÜCÜ", 'font': {'size': 18, 'color': "#00fff9"}}, gauge = {'axis': {'range': [0, 100]}, 'bar': {'color': "#00fff9"}, 'steps': [{'range': [0, 30], 'color': 'green'}, {'range': [70, 100], 'color': 'red'}]}))
+            fig_gauge = go.Figure(go.Indicator(
+                mode = "gauge+number+delta", value = rsi_val,
+                domain = {'x': [0, 1], 'y': [0, 1]},
+                title = {'text': "RSI GÜCÜ", 'font': {'size': 18, 'color': "#00fff9"}},
+                gauge = {'axis': {'range': [0, 100]}, 'bar': {'color': "#00fff9"}, 'steps': [{'range': [0, 30], 'color': 'green'}, {'range': [70, 100], 'color': 'red'}]}))
             fig_gauge.update_layout(template="plotly_dark", paper_bgcolor='rgba(0,0,0,0)', height=300)
+
             ai_text = f"**🤖 PALA ANALİZ:**\nFiyat: **{df.iloc[-1]['Close']:.2f}**."
             if rsi_val < 30: ai_text += " RSI aşırı satımda (UCUZ). Tepki gelebilir. 🟢"
             elif rsi_val > 70: ai_text += " RSI aşırı alımda (PAHALI). Düzeltme gelebilir. 🔴"
             else: ai_text += " Piyasa kararsız (NÖTR). 🟡"
+
             return fig, df.iloc[-1]['Close'], pivot, (2*pivot)-df.iloc[-2]['Low'], rsi_val, fig_gauge, ai_text
     except: return None, None, None, None, None, None, None
 
-# --- YASAL UYARI FONKSİYONU ---
-def render_disclaimer():
-    st.markdown("""
-    <div class="disclaimer-box">
-        ⚠️ <strong>YASAL UYARI:</strong> Burada yer alan yatırım bilgi, yorum ve tavsiyeleri yatırım danışmanlığı kapsamında değildir. Yatırım danışmanlığı hizmeti; aracı kurumlar, portföy yönetim şirketleri, mevduat kabul etmeyen bankalar ile müşteri arasında imzalanacak yatırım danışmanlığı sözleşmesi çerçevesinde sunulmaktadır. Sadece burada yer alan bilgilere dayanılarak yatırım kararı verilmesi beklentilerinize uygun sonuçlar doğurmayabilir. 
-        <br><br>© 2025 PALA BALİNA AVCISI | LİSANSLI YAZILIMDIR | TÜM HAKLARI SAKLIDIR
-    </div>
-    """, unsafe_allow_html=True)
-
 def admin_dashboard():
-    st.sidebar.title("👑 YÖNETİM"); menu = st.sidebar.radio("Menü:", ["Üye İstatistik", "Üyeler", "Duyuru"]); db = load_db()
-    
-    if menu == "Üye İstatistik":
-        total = len(db)-1
-        vip = sum(1 for k, v in db.items() if k != "admin" and v.get('onay'))
-        trial = total - vip
-        c1, c2, c3 = st.columns(3)
-        c1.metric("TOPLAM ÜYE", total)
-        c2.metric("💎 VIP ÜYELER", vip)
-        c3.metric("⏳ DENEME SÜRECİ", trial)
-        
-    elif menu == "Üyeler":
+    st.sidebar.title("👑 YÖNETİM"); menu = st.sidebar.radio("Menü:", ["Üyeler", "Duyuru"]); db = load_db()
+    if menu == "Üyeler":
         for k, v in db.items():
             if k != "admin":
-                with st.expander(f"{v.get('isim')} ({k}) - {'✅ VIP' if v.get('onay') else '⏳ DENEME'}"):
+                with st.expander(f"{v.get('isim')} ({k}) - {'✅' if v.get('onay') else '⏳'}"):
                     c1, c2 = st.columns(2)
                     if c1.button("ONAYLA", key=f"a_{k}"): db[k]['onay']=True; save_db(db); st.rerun()
                     if c2.button("SİL", key=f"d_{k}"): del db[k]; save_db(db); st.rerun()
@@ -264,14 +294,16 @@ def ana_uygulama(kalan_sure_dk=None):
                 if "mesajlar" not in db[user]: db[user]["mesajlar"] = []
                 db[user]["mesajlar"].append(f"ÖDEME: {tx}"); save_db(db); st.success("İletildi!")
 
-    wg, mg, wl, sp, radar = get_market_analysis()
+    st.markdown("---")
+    wg, mg, wl, sp = get_market_analysis()
     if wg:
         c1, c2, c3, c4 = st.columns(4)
         c1.markdown(f"<div class='top-list-box' style='border-color:#38ef7d;'><div class='list-title'>🟢 HAFTALIK KRALLAR</div>{''.join([f'<div class=list-item><span>{i["Sembol"]}</span><span class=pos>%{i["Degisim"]:.1f}</span></div>' for i in wg])}</div>", unsafe_allow_html=True)
         c2.markdown(f"<div class='top-list-box' style='border-color:#38ef7d;'><div class='list-title'>🗓️ AYLIK ROKETLER</div>{''.join([f'<div class=list-item><span>{i["Sembol"]}</span><span class=pos>%{i["Degisim"]:.1f}</span></div>' for i in mg])}</div>", unsafe_allow_html=True)
         c3.markdown(f"<div class='top-list-box' style='border-color:#ef473a;'><div class='list-title'>🔴 HAFTALIK KAYIPLAR</div>{''.join([f'<div class=list-item><span>{i["Sembol"]}</span><span class=neg>%{i["Degisim"]:.1f}</span></div>' for i in wl])}</div>", unsafe_allow_html=True)
         c4.markdown(f"<div class='top-list-box' style='border-color:#ff00ff;'><div class='list-title'>🎰 SPEK / VOLATİL</div>{''.join([f'<div class=list-item><span>{i["Sembol"]}</span><span class=spek>⚡ {i["Volatilite"]:.1f}</span></div>' for i in sp])}</div>", unsafe_allow_html=True)
-    
+    else: st.info("Piyasa verileri yükleniyor veya kapalı.")
+
     st.markdown("---")
     col_sel, col_ind = st.columns([2, 2])
     with col_sel: hisse_secim = st.selectbox("Hisse Analiz Et:", [f"{h}.IS" for h in BIST_HISSELERI if "USD" not in h] + [h for h in BIST_HISSELERI if "USD" in h])
@@ -292,8 +324,10 @@ def ana_uygulama(kalan_sure_dk=None):
             with c_g2: 
                 st.plotly_chart(gauge, use_container_width=True)
                 st.markdown(f"<div class='ai-box'>{ai}</div>", unsafe_allow_html=True)
+        else: st.error("Veri Yok.")
         if st.button("Kapat"): st.session_state.secilen_hisse=None; st.rerun()
     
+    # YASAL UYARIYI ANA EKRANDA DA GÖSTER
     render_disclaimer()
 
 def payment_screen():
@@ -308,38 +342,3 @@ def login_page():
         st.markdown("""<div class="hero-container"><div class="hero-title">DERİN SULARIN HAKİMİ OL.</div><div class="hero-subtitle">Borsa İstanbul ve Kripto dünyasında kaybolma. Profesyonel balina avcılarının kullandığı terminale hoş geldin.</div><div class="feature-box"><div class="feature-title">🚀 CANLI SİNYAL YAKALAYICI</div><div class="feature-desc">Hangi hisseye balina girdi? RSI, Pivot ve Hacim patlamalarını saniyesinde gör.</div></div><div class="feature-box"><div class="feature-title">🧠 OTOMATİK TEKNİK ANALİZ</div><div class="feature-desc">Destek, Direnç, Pivot noktaları ve Trend analizleri tek tıkla ekranında.</div></div><div class="feature-box"><div class="feature-title">🛡️ VIP KULÜP AYRICALIĞI</div><div class="feature-desc">Sadece seçkin üyeler için özel veriler ve 7/24 piyasa takibi.</div></div><div style="margin-top:20px; text-align:center;"><img src="https://images.unsplash.com/photo-1560275619-4662e36fa65c?q=80&w=2070&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D" style="width:100%; border-radius:10px; border:1px solid #00fff9; opacity:0.8; box-shadow: 0 0 20px rgba(0, 255, 249, 0.3);"></div></div>""", unsafe_allow_html=True)
     with col_login:
         st.markdown("<div class='login-container'>", unsafe_allow_html=True)
-        tab1, tab2 = st.tabs(["🔑 GİRİŞ YAP", "📝 10 DK ÜCRETSİZ DENE"])
-        with tab1:
-            k = st.text_input("Kullanıcı Adı", key="l_u"); s = st.text_input("Şifre", type="password", key="l_p")
-            st.markdown("<br>", unsafe_allow_html=True)
-            if st.button("TERMİNALE BAĞLAN ⚡", type="primary", use_container_width=True):
-                db = load_db()
-                if k in db and db[k]['sifre'] == s: st.session_state.login_user = k; st.rerun()
-                else: st.error("Hatalı Giriş!")
-        with tab2:
-            st.markdown("##### Hızlı Kayıt Ol & Başla")
-            u = st.text_input("Kullanıcı Adı Belirle", key="r_u"); n = st.text_input("Adın Soyadın", key="r_n"); p = st.text_input("Şifre Belirle", type="password", key="r_p")
-            st.markdown("<br>", unsafe_allow_html=True)
-            if st.button("KAYDI TAMAMLA VE BAŞLA 🚀", type="primary", use_container_width=True):
-                db = load_db()
-                if u in db: st.warning("Bu isim alınmış!")
-                elif u and p:
-                    db[u] = {"sifre": p, "isim": n, "onay": False, "rol": "user", "mesajlar": [], "portfoy": [], "kayit_tarihi": time.time()}
-                    save_db(db); st.success("Kayıt Başarılı!"); send_telegram(f"🆕 ÜYE: {u}")
-        st.markdown("</div>", unsafe_allow_html=True)
-    
-    render_disclaimer()
-
-if not st.session_state.login_user:
-    login_page()
-else:
-    u_id = st.session_state.login_user; db = load_db()
-    if u_id in db:
-        user_data = db[u_id]
-        if user_data.get('rol') == 'admin': ana_uygulama()
-        elif user_data.get('onay') == True: ana_uygulama()
-        else:
-            kayit_zamani = user_data.get('kayit_tarihi', 0); gecen_sure_dk = (time.time() - kayit_zamani) / 60
-            if gecen_sure_dk < DENEME_SURESI_DK: ana_uygulama(DENEME_SURESI_DK - gecen_sure_dk)
-            else: payment_screen()
-    else: st.session_state.login_user = None; st.rerun()
