@@ -1,3 +1,4 @@
+
 import streamlit as st
 import yfinance as yf
 import pandas as pd
@@ -400,8 +401,7 @@ def login_page():
     col_info, col_login = st.columns([3, 2])
     
     with col_info:
-        # GİRİNTİSİZ HTML STRING (Hata Önleyici)
-        st.markdown("""<div class="hero-container"><div class="hero-title">DERİN SULARIN HAKİMİ OL.</div><div class="hero-subtitle">Borsa İstanbul ve Kripto dünyasında kaybolma. Profesyonel balina avcılarının kullandığı terminale hoş geldin.</div><div class="feature-box"><div class="feature-title">🚀 CANLI SİNYAL YAKALAYICI</div><div class="feature-desc">Hangi hisseye balina girdi? RSI, Pivot ve Hacim patlamalarını saniyesinde gör.</div></div><div class="feature-box"><div class="feature-title">🧠 OTOMATİK TEKNİK ANALİZ</div><div class="feature-desc">Destek, Direnç, Pivot noktaları ve Trend analizleri tek tıkla ekranında.</div></div><div class="feature-box"><div class="feature-title">🛡️ VIP KULÜP AYRICALIĞI</div><div class="feature-desc">Sadece seçkin üyeler için özel veriler ve 7/24 piyasa takibi.</div></div><div style="margin-top:20px; text-align:center;"><img src="https://images.unsplash.com/photo-1611974765270-ca1258822981?q=80&w=2070&auto=format&fit=crop" style="width:100%; border-radius:10px; border:1px solid #00fff9; opacity:0.8;"></div></div>""", unsafe_allow_html=True)
+        st.markdown("""<div class="hero-container"><div class="hero-title">DERİN SULARIN HAKİMİ OL.</div><div class="hero-subtitle">Borsa İstanbul ve Kripto dünyasında kaybolma. Profesyonel balina avcılarının kullandığı terminale hoş geldin.</div><div class="feature-box"><div class="feature-title">🚀 CANLI SİNYAL YAKALAYICI</div><div class="feature-desc">Hangi hisseye balina girdi? RSI, Pivot ve Hacim patlamalarını saniyesinde gör.</div></div><div class="feature-box"><div class="feature-title">🧠 OTOMATİK TEKNİK ANALİZ</div><div class="feature-desc">Destek, Direnç, Pivot noktaları ve Trend analizleri tek tıkla ekranında.</div></div><div class="feature-box"><div class="feature-title">🛡️ VIP KULÜP AYRICALIĞI</div><div class="feature-desc">Sadece seçkin üyeler için özel veriler ve 7/24 piyasa takibi.</div></div><div style="margin-top:20px; text-align:center;"><img src="https://images.unsplash.com/photo-1560275619-4662e36fa65c?q=80&w=2070&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D" style="width:100%; border-radius:10px; border:1px solid #00fff9; opacity:0.8; box-shadow: 0 0 20px rgba(0, 255, 249, 0.3);"></div></div>""", unsafe_allow_html=True)
 
     with col_login:
         st.markdown("<div class='login-container'>", unsafe_allow_html=True)
