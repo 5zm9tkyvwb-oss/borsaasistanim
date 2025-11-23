@@ -342,3 +342,42 @@ def login_page():
         st.markdown("""<div class="hero-container"><div class="hero-title">DERİN SULARIN HAKİMİ OL.</div><div class="hero-subtitle">Borsa İstanbul ve Kripto dünyasında kaybolma. Profesyonel balina avcılarının kullandığı terminale hoş geldin.</div><div class="feature-box"><div class="feature-title">🚀 CANLI SİNYAL YAKALAYICI</div><div class="feature-desc">Hangi hisseye balina girdi? RSI, Pivot ve Hacim patlamalarını saniyesinde gör.</div></div><div class="feature-box"><div class="feature-title">🧠 OTOMATİK TEKNİK ANALİZ</div><div class="feature-desc">Destek, Direnç, Pivot noktaları ve Trend analizleri tek tıkla ekranında.</div></div><div class="feature-box"><div class="feature-title">🛡️ VIP KULÜP AYRICALIĞI</div><div class="feature-desc">Sadece seçkin üyeler için özel veriler ve 7/24 piyasa takibi.</div></div><div style="margin-top:20px; text-align:center;"><img src="https://images.unsplash.com/photo-1560275619-4662e36fa65c?q=80&w=2070&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D" style="width:100%; border-radius:10px; border:1px solid #00fff9; opacity:0.8; box-shadow: 0 0 20px rgba(0, 255, 249, 0.3);"></div></div>""", unsafe_allow_html=True)
     with col_login:
         st.markdown("<div class='login-container'>", unsafe_allow_html=True)
+        tab1, tab2 = st.tabs(["🔑 GİRİŞ YAP", "📝 10 DK ÜCRETSİZ DENE"])
+        with tab1:
+            k = st.text_input("Kullanıcı Adı", key="l_u"); s = st.text_input("Şifre", type="password", key="l_p")
+            st.markdown("<br>", unsafe_allow_html=True)
+            if st.button("TERMİNALE BAĞLAN ⚡", type="primary", use_container_width=True):
+                db = load_db()
+                if k in db and db[k]['sifre'] == s: st.session_state.login_user = k; st.rerun()
+                else: st.error("Hatalı Giriş!")
+        with tab2:
+            st.markdown("##### Hızlı Kayıt Ol & Başla")
+            u = st.text_input("Kullanıcı Adı Belirle", key="r_u"); n = st.text_input("Adın Soyadın", key="r_n"); p = st.text_input("Şifre Belirle", type="password", key="r_p")
+            st.markdown("<br>", unsafe_allow_html=True)
+            if st.button("KAYDI TAMAMLA VE BAŞLA 🚀", type="primary", use_container_width=True):
+                db = load_db()
+                if u in db: st.warning("Bu isim alınmış!")
+                elif u and p:
+                    db[u] = {"sifre": p, "isim": n, "onay": False, "rol": "user", "mesajlar": [], "portfoy": [], "kayit_tarihi": time.time()}
+                    save_db(db); st.success("Kayıt Başarılı!"); send_telegram(f"🆕 ÜYE: {u}")
+        st.markdown("</div>", unsafe_allow_html=True)
+        
+        # YASAL UYARI BURAYA DA EKLENDİ
+        render_disclaimer()
+
+    if st.checkbox("Admin Reset"):
+        if st.button("Reset"): st.session_state.db = {"admin": {"sifre": "pala500", "isim": "Patron", "onay": True, "rol": "admin", "mesajlar": [], "loglar": [], "portfoy": [], "kayit_tarihi": time.time()}}; save_db(st.session_state.db); st.success("Resetlendi.")
+
+if not st.session_state.login_user:
+    login_page()
+else:
+    u_id = st.session_state.login_user; db = load_db()
+    if u_id in db:
+        user_data = db[u_id]
+        if user_data.get('rol') == 'admin': ana_uygulama()
+        elif user_data.get('onay') == True: ana_uygulama()
+        else:
+            kayit_zamani = user_data.get('kayit_tarihi', 0); gecen_sure_dk = (time.time() - kayit_zamani) / 60
+            if gecen_sure_dk < DENEME_SURESI_DK: ana_uygulama(DENEME_SURESI_DK - gecen_sure_dk)
+            else: payment_screen()
+    else: st.session_state.login_user = None; st.rerun()
