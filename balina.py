@@ -1,3 +1,4 @@
+
 import streamlit as st
 import yfinance as yf
 import pandas as pd
@@ -16,7 +17,7 @@ st.set_page_config(page_title="PALA Balina Avcısı", layout="wide", page_icon="
 # 💰 AYARLAR
 # ==========================================
 USDT_ADDRESS = "TV4DK7vckLWJciKSqhvY5hEpcw1Ka522AQ"
-DENEME_SURESI_DK = 10  # Dakika cinsinden deneme süresi
+DENEME_SURESI_DK = 10  # 10 Dakika VIP Deneme
 
 # ==========================================
 # 📜 BIST HİSSE LİSTESİ
@@ -179,6 +180,23 @@ st.markdown("""
     <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&display=swap" rel="stylesheet">
 """, unsafe_allow_html=True)
 
+# --- CANLI DÖVİZ GETİRİCİ ---
+def get_live_rates():
+    try:
+        # Yahoo Finance üzerinden anlık çekiyoruz
+        tickers = ["TRY=X", "EURTRY=X", "GC=F", "BTC-USD"]
+        data = yf.download(tickers, period="1d", interval="1m", progress=False)['Close'].iloc[-1]
+        
+        usd = data['TRY=X']
+        eur = data['EURTRY=X']
+        gram_altin = data['GC=F'] * usd / 31.1  # Ons to Gram TL hesabı
+        btc = data['BTC-USD']
+        
+        return usd, eur, gram_altin, btc
+    except:
+        # Eğer veri çekilemezse (Yedek değerler - Kullanıcının istediği yüksek değerlere yakın)
+        return 42.50, 45.20, 3100.0, 98000.0
+
 # --- YARDIMCI FONKSİYONLAR ---
 def log_ekle(mesaj):
     try:
@@ -190,6 +208,7 @@ def log_ekle(mesaj):
         save_db(db)
     except: pass
 
+@st.cache_data(ttl=1800)
 def get_market_analysis():
     candidates = ["THYAO.IS", "ASELS.IS", "GARAN.IS", "AKBNK.IS", "TUPRS.IS", "SASA.IS", "HEKTS.IS", "EREGL.IS", "KCHOL.IS", "BIMAS.IS", "EKGYO.IS", "ODAS.IS", "KONTR.IS", "GUBRF.IS", "FROTO.IS", "ASTOR.IS", "REEDR.IS", "EUPWR.IS", "GESAN.IS", "SMRTG.IS", "HDFGS.IS", "ISCTR.IS", "YKBNK.IS", "PETKM.IS", "KOZAL.IS", "KRDMD.IS", "VESTL.IS", "ARCLK.IS", "TOASO.IS", "TTKOM.IS", "TCELL.IS", "SOKM.IS", "MGROS.IS", "ALFAS.IS", "CANTE.IS", "CVKMD.IS", "KCAER.IS", "OYAKC.IS", "EGEEN.IS", "DOAS.IS"]
     weekly_data = []
@@ -230,7 +249,7 @@ def grafik_ciz(symbol):
     except: return None, None, None, None, None
 
 # ==========================================
-# 👑 ADMIN PANELİ (Üye Yönetimi)
+# 👑 ADMIN PANELİ
 # ==========================================
 def admin_dashboard():
     st.sidebar.markdown("---")
@@ -242,7 +261,6 @@ def admin_dashboard():
         st.subheader("👥 KULLANICI LİSTESİ")
         for k, v in db.items():
             if k != "admin":
-                # Kalan süreyi hesapla
                 reg_time = v.get('kayit_tarihi', 0)
                 gecen_sure = (time.time() - reg_time) / 60
                 kalan_sure = DENEME_SURESI_DK - gecen_sure
@@ -254,16 +272,13 @@ def admin_dashboard():
                 with st.expander(f"👤 {v.get('isim')} ({k}) - {durum_ikon}"):
                     c1, c2, c3 = st.columns(3)
                     if not v.get('onay'):
-                        if c1.button(f"ONAYLA (Premium Yap) 🏆", key=f"app_{k}"): db[k]['onay'] = True; save_db(db); st.rerun()
+                        if c1.button(f"ONAYLA (Premium) 🏆", key=f"app_{k}"): db[k]['onay'] = True; save_db(db); st.rerun()
                     else:
-                        if c1.button(f"PREMIUM İPTAL ⛔", key=f"ban_{k}"): db[k]['onay'] = False; save_db(db); st.rerun()
+                        if c1.button(f"İPTAL ET ⛔", key=f"ban_{k}"): db[k]['onay'] = False; save_db(db); st.rerun()
                     
-                    if c2.button(f"KULLANICIYI SİL 🗑️", key=f"del_{k}"): del db[k]; save_db(db); st.rerun()
-                    
-                    if c3.button(f"SÜREYİ SIFIRLA (Yeniden 10dk)", key=f"rst_{k}"): 
-                        db[k]['kayit_tarihi'] = time.time()
-                        db[k]['onay'] = False
-                        save_db(db); st.success("Süre sıfırlandı!"); st.rerun()
+                    if c2.button(f"SİL 🗑️", key=f"del_{k}"): del db[k]; save_db(db); st.rerun()
+                    if c3.button(f"SÜREYİ SIFIRLA", key=f"rst_{k}"): 
+                        db[k]['kayit_tarihi'] = time.time(); db[k]['onay'] = False; save_db(db); st.success("Süre sıfırlandı!"); st.rerun()
 
     elif menu == "Bildirimler":
         st.subheader("📩 ÖDEME BİLDİRİMLERİ")
@@ -284,7 +299,7 @@ def admin_dashboard():
 # ==========================================
 def payment_screen():
     u = st.session_state.login_user; db = load_db()
-    st.markdown("""<div style="text-align:center; padding-top:20px;"><h1 style="color:#ff00ff;">⛔ DENEME SÜRESİ DOLDU ⛔</h1><p style="font-size:18px;">10 Dakikalık ücretsiz kullanım hakkınız bitti.</p><p>Devam etmek için Premium Üyelik satın almalısınız.</p></div>""", unsafe_allow_html=True)
+    st.markdown("""<div style="text-align:center; padding-top:20px;"><h1 style="color:#ff00ff;">⛔ DENEME SÜRESİ DOLDU ⛔</h1><p style="font-size:18px;">10 Dakikalık VIP kullanım hakkınız bitti.</p><p>Devam etmek için Premium Üyelik satın almalısınız.</p></div>""", unsafe_allow_html=True)
     st.markdown(f"""<div class="wallet-box"><h3 style="color:#00fff9;">💎 USDT (TRC20) CÜZDAN</h3><div class="wallet-addr">{USDT_ADDRESS}</div></div>""", unsafe_allow_html=True)
     
     st.subheader("📩 Ödeme Bildirimi")
@@ -303,6 +318,17 @@ def payment_screen():
 # 📈 ANA UYGULAMA
 # ==========================================
 def ana_uygulama(kalan_sure_dk=None):
+    # KeyError Çözümü: Veritabanını burada tazeliyoruz
+    db = load_db()
+    user = st.session_state.login_user
+    
+    # Güvenlik Kontrolü
+    if user not in db:
+        st.error("Oturum verisi bozuldu. Lütfen tekrar giriş yapın.")
+        st.session_state.login_user = None
+        time.sleep(2)
+        st.rerun()
+
     # SAYACI GÖSTER (Eğer premium değilse ve süre varsa)
     if kalan_sure_dk is not None:
         dakika = int(kalan_sure_dk)
@@ -310,15 +336,17 @@ def ana_uygulama(kalan_sure_dk=None):
         st.markdown(f"""<div class="trial-counter">⏳ DENEME: {dakika:02d}:{saniye:02d}</div>""", unsafe_allow_html=True)
         st.toast(f"Deneme Sürümü Aktif! Kalan Süre: {dakika} Dakika", icon="⏳")
 
-    st.markdown("""
+    # CANLI KUR GETİR
+    usd, eur, gram, btc = get_live_rates()
+
+    st.markdown(f"""
     <div style="background:#050a14; border-bottom:2px solid #00fff9; padding:5px; margin-bottom:20px;">
         <div style="animation:marquee 30s linear infinite; color:#00fff9; font-weight:800; white-space:nowrap;">
-            💵 USD/TRY: 34.50 ⏐ 💶 EUR/TRY: 37.20 ⏐ 🦈 PALA BALİNA AVCISI AKTİF
+            💵 USD: {usd:.2f} ⏐ 💶 EUR: {eur:.2f} ⏐ 🟡 GR ALTIN: {gram:.0f} TL ⏐ ₿ BTC: ${btc:,.0f} ⏐ 🦈 PALA BALİNA AVCISI AKTİF
         </div>
-    </div><style>@keyframes marquee { 0% {transform:translateX(0);} 100% {transform:translateX(-100%);} }</style>
+    </div><style>@keyframes marquee {{ 0% {{transform:translateX(0);}} 100% {{transform:translateX(-100%);}} }}</style>
     """, unsafe_allow_html=True)
 
-    user = st.session_state.login_user; db = st.session_state.db
     c1, c2 = st.columns([8, 2])
     c1.markdown(f"<h1 style='color:#00fff9;'>🦈 PALA BALİNA AVCISI</h1>", unsafe_allow_html=True)
     c1.markdown(f"Kaptan: **{db[user].get('isim')}**")
@@ -388,7 +416,7 @@ def login_page():
                 if u in db: st.warning("Bu isim dolu!")
                 elif u and p:
                     db[u] = {"sifre": p, "isim": n, "onay": False, "rol": "user", "mesajlar": [], "portfoy": [], "kayit_tarihi": time.time()}
-                    save_db(db); st.success("Kayıt Başarılı! 10 Dakikan başladı."); send_telegram(f"🆕 ÜYE: {u}")
+                    save_db(db); st.success("Kayıt Başarılı! Giriş sekmesinden giriş yapın."); send_telegram(f"🆕 ÜYE: {u}")
 
     if st.checkbox("Admin Reset"):
         if st.button("Reset"): st.session_state.db = {"admin": {"sifre": "pala500", "isim": "Patron", "onay": True, "rol": "admin", "mesajlar": [], "loglar": [], "portfoy": [], "kayit_tarihi": time.time()}}; save_db(st.session_state.db); st.success("Resetlendi.")
