@@ -10,7 +10,7 @@ from datetime import datetime
 from io import BytesIO
 
 # --- SAYFA AYARLARI ---
-st.set_page_config(page_title="Kemal Balina Avcısı", layout="wide", page_icon="🐋")
+st.set_page_config(page_title="PALA Balina Avcısı", layout="wide", page_icon="🦈")
 
 # ==========================================
 # 📜 DEV BIST HİSSE LİSTESİ (TÜMÜ)
@@ -122,89 +122,161 @@ if 'giris_yapildi' not in st.session_state: st.session_state.giris_yapildi = Fal
 if 'login_user' not in st.session_state: st.session_state.login_user = None
 if 'secilen_hisse' not in st.session_state: st.session_state.secilen_hisse = None
 
-# --- TASARIM (PREMIUM GOLD & DEEP NAVY) ---
+# --- TASARIM (NEON CYBERPUNK & HACKER TERMINAL) ---
 st.markdown("""
     <style>
-    /* Genel Arka Plan */
+    /* --- GENEL SAYFA YAPISI --- */
     .stApp { 
-        background-color: #0b1116 !important;
-        color: #e6e6e6 !important; 
-        font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+        background-color: #050a14 !important; /* Çok koyu siber mavi/siyah */
+        background-image: radial-gradient(rgba(0, 255, 249, 0.1) 1px, transparent 1px), radial-gradient(rgba(0, 255, 249, 0.1) 1px, transparent 1px);
+        background-size: 50px 50px;
+        background-position: 0 0, 25px 25px;
+        color: #e6e6e6 !important; /* Okunabilir açık gri metin */
+        font-family: 'Orbitron', 'Roboto', sans-serif; /* Daha teknolojik font */
     }
     
-    /* Tablolar */
+    /* --- NEON BAŞLIKLAR VE METİNLER --- */
+    h1, h2, h3 {
+        color: #ffffff !important;
+        text-transform: uppercase;
+        letter-spacing: 1.5px;
+    }
+    
+    /* PALA BALİNA AVCISI Giriş Başlığı Efekti */
+    .neon-title {
+        font-size: 70px !important;
+        font-weight: 900;
+        color: #fff;
+        text-align: center;
+        text-shadow:
+            0 0 5px #fff,
+            0 0 10px #fff,
+            0 0 20px #00fff9, /* Camgöbeği Neon */
+            0 0 40px #00fff9,
+            0 0 80px #00fff9,
+            0 0 90px #ff00ff, /* Pembe Neon */
+            0 0 100px #ff00ff;
+        animation: flicker 1.5s infinite alternate;
+    }
+    @keyframes flicker {
+        0%, 18%, 22%, 25%, 53%, 57%, 100% {
+            text-shadow:
+            0 0 4px #fff,
+            0 0 11px #fff,
+            0 0 19px #00fff9,
+            0 0 40px #00fff9,
+            0 0 80px #00fff9,
+            0 0 90px #ff00ff,
+            0 0 100px #ff00ff;
+        }
+        20%, 24%, 55% {        
+            text-shadow: none;
+        }
+    }
+    
+    .sub-title {
+        color: #00fff9 !important;
+        text-align: center;
+        font-size: 20px;
+        letter-spacing: 3px;
+        text-shadow: 0 0 10px #00fff9;
+    }
+    
+    /* --- TABLOLAR (Hacker Tarzı) --- */
     div[data-testid="stTable"], table {
-        background-color: #161b22 !important;
-        border: 1px solid #30363d !important;
-        border-radius: 8px !important;
+        background-color: rgba(13, 17, 23, 0.8) !important;
+        border: 1px solid #00fff9 !important; /* Neon çerçeve */
+        box-shadow: 0 0 10px rgba(0, 255, 249, 0.2);
+        border-radius: 4px !important;
         color: #e6e6e6 !important;
     }
     thead tr th {
-        background-color: #21262d !important;
-        color: #FFD700 !important;
+        background-color: rgba(0, 255, 249, 0.1) !important;
+        color: #00fff9 !important; /* Başlıklar Neon Mavi */
         font-size: 15px !important;
-        border-bottom: 2px solid #FFD700 !important;
+        border-bottom: 2px solid #00fff9 !important;
+        text-shadow: 0 0 5px #00fff9;
     }
-    tbody tr:nth-of-type(even) { background-color: #0d1117 !important; }
-    tbody tr:hover { background-color: #30363d !important; }
+    tbody tr:nth-of-type(even) { background-color: rgba(255, 0, 255, 0.05) !important; }
+    tbody tr:hover { background-color: rgba(0, 255, 249, 0.1) !important; }
     
-    /* Butonlar */
+    /* --- BUTONLAR (Cyberpunk Gradient) --- */
     div.stButton > button {
-        background: #c59d5f !important;
+        background: linear-gradient(90deg, #00fff9, #ff00ff) !important;
         color: #000000 !important; 
         border: none !important; 
-        border-radius: 6px !important; 
-        font-weight: 700 !important; 
+        border-radius: 4px !important; 
+        font-weight: 800 !important;
+        text-transform: uppercase;
         font-size: 16px !important;
-        height: 45px !important; 
+        height: 50px !important; 
         width: 100% !important;
-        transition: all 0.2s ease !important;
+        transition: all 0.3s ease !important;
+        box-shadow: 0 0 10px rgba(0, 255, 249, 0.5);
     }
     div.stButton > button:hover { 
-        background: #FFD700 !important;
-        transform: scale(1.01) !important;
+        transform: scale(1.02) !important;
+        box-shadow: 0 0 20px #00fff9, 0 0 20px #ff00ff !important;
     }
     
-    /* Inputlar */
+    /* --- INPUT ALANLARI (Parlayan Çerçeveler) --- */
     .stSelectbox div[data-baseweb="select"] > div,
     .stTextInput input, .stNumberInput input { 
-        background-color: #0d1117 !important; 
-        color: #ffffff !important; 
+        background-color: rgba(13, 17, 23, 0.8) !important; 
+        color: #00fff9 !important; /* Yazı rengi neon mavi */
         border: 1px solid #30363d !important; 
-        border-radius: 6px !important;
+        border-radius: 4px !important;
+        transition: all 0.3s;
     }
+    /* Inputa tıklayınca parlasın */
+    .stTextInput input:focus, .stNumberInput input:focus, .stSelectbox > div[data-baseweb="select"] > div:focus-within {
+        border-color: #00fff9 !important;
+        box-shadow: 0 0 15px #00fff9, inset 0 0 5px #00fff9 !important;
+    }
+    
+    /* Dropdown Menüler */
     div[data-baseweb="popover"], div[data-baseweb="menu"] {
-        background-color: #161b22 !important;
-        color: white !important;
+        background-color: #0d1117 !important;
+        border: 1px solid #00fff9 !important;
     }
     
-    /* Başlıklar */
-    h1, h2, h3 { color: #ffffff; font-weight: 600; letter-spacing: 0.5px; }
-    .gold-text { color: #FFD700 !important; }
+    /* --- METRİK KUTULARI --- */
+    div[data-testid="stMetricValue"] {
+        background: -webkit-linear-gradient(#00fff9, #ff00ff);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        font-weight: 800 !important;
+        text-shadow: 0 0 10px rgba(0,255,249,0.3);
+    }
+    div[data-testid="stMetricLabel"] {
+        color: #e6e6e6 !important;
+    }
     
-    /* Sticker */
+    /* --- STICKER --- */
     .pala-sticker { 
         position: fixed; top: 70px; right: 25px; 
-        background-color: #FFD700; 
+        background: linear-gradient(45deg, #00fff9, #ff00ff);
         color: #000; padding: 8px 16px; border-radius: 4px; 
-        font-weight: 800; letter-spacing: 1px;
-        z-index: 9999; box-shadow: 0 4px 10px rgba(0,0,0,0.5); 
+        font-weight: 900; letter-spacing: 1px;
+        z-index: 9999; box-shadow: 0 0 20px #00fff9;
+        animation: pulse 2s infinite;
     }
-
-    /* Metrik Kutuları */
-    div[data-testid="stMetricValue"] {
-        color: #FFD700 !important;
-        font-weight: 700 !important;
+    @keyframes pulse {
+        0% { box-shadow: 0 0 10px #00fff9; }
+        50% { box-shadow: 0 0 30px #ff00ff; }
+        100% { box-shadow: 0 0 10px #00fff9; }
     }
     
-    /* Bilgi Kartları */
-    div.stInfo {
-        background-color: rgba(255, 215, 0, 0.1) !important;
-        border: 1px solid #c59d5f !important;
+    /* --- BİLGİ KUTULARI --- */
+    div.stInfo, div.stSuccess {
+        background-color: rgba(0, 255, 249, 0.1) !important;
+        border: 1px solid #00fff9 !important;
         color: #ffffff !important;
+        box-shadow: inset 0 0 10px rgba(0, 255, 249, 0.2);
     }
     </style>
-    <div class="pala-sticker">KEMAL BALİNA</div>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&display=swap" rel="stylesheet">
+    <div class="pala-sticker">PALA BALİNA</div>
 """, unsafe_allow_html=True)
 
 # --- YARDIMCI FONKSİYONLAR ---
@@ -268,19 +340,21 @@ def grafik_ciz(symbol):
             fig = go.Figure()
             fig.add_trace(go.Candlestick(x=df.index, open=df['Open'], high=df['High'], low=df['Low'], close=df['Close'], name="Fiyat"))
             
-            # DESTEK/DİRENÇ ÇİZGİLERİ
-            fig.add_hline(y=pivot, line_dash="dot", line_color="yellow", line_width=1, annotation_text="PIVOT", annotation_position="bottom right")
-            fig.add_hline(y=r1, line_dash="solid", line_color="#ff4d4d", line_width=1.5, annotation_text="DİRENÇ (R1)")
-            fig.add_hline(y=s1, line_dash="solid", line_color="#00e676", line_width=1.5, annotation_text="DESTEK (S1)")
+            # DESTEK/DİRENÇ ÇİZGİLERİ (Neon Renkler)
+            fig.add_hline(y=pivot, line_dash="dot", line_color="#00fff9", line_width=2, annotation_text="PIVOT", annotation_position="bottom right", annotation_font_color="#00fff9")
+            fig.add_hline(y=r1, line_dash="solid", line_color="#ff00ff", line_width=2, annotation_text="DİRENÇ (R1)", annotation_font_color="#ff00ff")
+            fig.add_hline(y=s1, line_dash="solid", line_color="#00fff9", line_width=2, annotation_text="DESTEK (S1)", annotation_font_color="#00fff9")
             
             fig.update_layout(
-                title=f"📊 {symbol} TEKNİK GÖRÜNÜM", 
+                title=dict(text=f"📊 {symbol} SİBER GÖRÜNÜM", font=dict(color="#00fff9", size=20)),
                 template="plotly_dark", 
                 height=500, 
                 xaxis_rangeslider_visible=False, 
-                plot_bgcolor='#0d1117', 
-                paper_bgcolor='#0d1117',
-                font=dict(family="Arial", size=12, color="#b0b0b0")
+                plot_bgcolor='rgba(0,0,0,0)', 
+                paper_bgcolor='rgba(0,0,0,0)',
+                font=dict(family="Orbitron", size=12, color="#e6e6e6"),
+                xaxis=dict(gridcolor='rgba(0, 255, 249, 0.1)'),
+                yaxis=dict(gridcolor='rgba(0, 255, 249, 0.1)'),
             )
             
             news = []
@@ -299,7 +373,7 @@ def admin_dashboard():
     st.sidebar.markdown("---")
     st.sidebar.title("👑 YÖNETİM")
     if st.sidebar.button("🔔 Test Bildirimi Gönder"):
-        send_telegram("🦅 *Kemal Balina:* Test Mesajı")
+        send_telegram("🦅 *Pala Balina:* Test Mesajı")
         st.sidebar.success("İletildi.")
     
     menu = st.sidebar.radio("Seçenekler:", ["Üyeler", "Mesaj Kutusu"])
@@ -319,11 +393,11 @@ def admin_dashboard():
 # 2. ANA UYGULAMA
 # ==========================================
 def ana_uygulama():
-    # --- KAYAN PİYASA BANDI (TICKER) ---
+    # --- KAYAN PİYASA BANDI (TICKER - NEON) ---
     st.markdown("""
-    <div style="background-color: #161b22; border-bottom: 2px solid #FFD700; overflow: hidden; white-space: nowrap; box-sizing: border-box; padding: 5px;">
-        <div style="display: inline-block; padding-left: 100%; animation: marquee 30s linear infinite; color: #FFD700; font-weight: bold; font-family: monospace; font-size: 16px;">
-            💵 USD/TRY: 34.50 ⏐ 💶 EUR/TRY: 37.20 ⏐ 🟡 GRAM ALTIN: 2950 TL ⏐ ₿ BTC: $98,000 ⏐ ⛽ BRENT: $75.40 ⏐ 🦅 BIST 100: 9.850 ⏐ 🚀 KEMAL BALİNA AVCISI AKTİF
+    <div style="background-color: #050a14; border-bottom: 2px solid #00fff9; border-top: 2px solid #ff00ff; overflow: hidden; white-space: nowrap; box-sizing: border-box; padding: 8px; box-shadow: 0 0 15px rgba(0, 255, 249, 0.5);">
+        <div style="display: inline-block; padding-left: 100%; animation: marquee 30s linear infinite; color: #00fff9; font-weight: 800; font-family: 'Orbitron', monospace; font-size: 18px; text-shadow: 0 0 5px #00fff9;">
+            💵 USD/TRY: 34.50 ⏐ 💶 EUR/TRY: 37.20 ⏐ 🟡 GRAM ALTIN: 2950 TL ⏐ ₿ BTC: $98,000 ⏐ ⛽ BRENT: $75.40 ⏐ 🦈 PALA BALİNA AVCISI SİSTEMİ AKTİF ⏐ HEDEF: MAKSİMUM KAZANÇ
         </div>
     </div>
     <style>
@@ -338,8 +412,8 @@ def ana_uygulama():
     
     c1, c2 = st.columns([8, 2])
     with c1:
-        st.markdown(f"<h1 style='color:#FFD700;'>🌊 KEMAL BALİNA AVCISI</h1>", unsafe_allow_html=True)
-        st.markdown(f"<p style='color:#8b949e;'>Hoşgeldin, <b>{db[user].get('isim', 'Kaptan')}</b>. Okyanuslar seni bekliyor.</p>", unsafe_allow_html=True)
+        st.markdown(f"<h1 style='color:#00fff9; text-shadow: 0 0 10px #00fff9;'>🦈 PALA BALİNA AVCISI</h1>", unsafe_allow_html=True)
+        st.markdown(f"<p style='color:#e6e6e6; letter-spacing: 1px;'>Terminal aktif, Kaptan <b>{db[user].get('isim', 'Kaptan')}</b>. Av başlasın.</p>", unsafe_allow_html=True)
     with c2:
         if st.button("GÜVENLİ ÇIKIŞ"): st.session_state.login_user=None; st.rerun()
 
@@ -362,7 +436,7 @@ def ana_uygulama():
     # --- GRAFİK VE DETAYLI ANALİZ ---
     if st.session_state.secilen_hisse:
         hisse = st.session_state.secilen_hisse
-        st.info(f"📈 {hisse} Analiz Ediliyor...")
+        st.info(f"📈 {hisse} Verileri İşleniyor...")
         
         # Grafik Fonksiyonunu Çağır
         fig, fiyat, pivot, s1, r1, rsi_val, haberler = grafik_ciz(hisse)
@@ -454,28 +528,32 @@ def ana_uygulama():
         for log in loglar: st.text(log)
 
 # ==========================================
-# GİRİŞ EKRANI
+# GİRİŞ EKRANI (YENİ NEON TASARIM)
 # ==========================================
 def login_page():
     st.markdown("""
-    <div style="text-align:center; padding: 50px 0;">
-        <h1 style='color:#FFD700; font-size: 60px;'>🐋</h1>
-        <h1 style='color:#FFD700; letter-spacing: 2px;'>KEMAL BALİNA AVCISI</h1>
-        <p style="color: #8b949e; font-size: 18px;">Profesyonel Borsa Analiz Terminali</p>
+    <div style="text-align:center; padding: 100px 0;">
+        <h1 class="neon-title">PALA BALİNA AVCISI</h1>
+        <p class="sub-title">PROFESYONEL BORSA TERMİNALİ</p>
     </div>
     """, unsafe_allow_html=True)
     
     col1, col2, col3 = st.columns([1, 2, 1])
     with col2:
-        k = st.text_input("Kullanıcı Adı"); s = st.text_input("Şifre", type="password")
-        if st.button("GİRİŞ YAP", type="primary"):
+        k = st.text_input("KOD ADI (Kullanıcı)", placeholder="Kaptan...")
+        s = st.text_input("GİRİŞ ANAHTARI (Şifre)", type="password", placeholder="••••••")
+        
+        st.markdown("<br>", unsafe_allow_html=True)
+        if st.button("TERMİNALE BAĞLAN ⚡", type="primary"):
             db=load_db()
             if k in db and db[k]['sifre']==s: st.session_state.login_user=k; st.rerun()
-            else: st.error("Hatalı Giriş")
-        if st.checkbox("Admin Kurtarma"):
-             if st.button("Onar"):
+            else: st.error("ERİŞİM REDDEDİLDİ. BİLGİLERİ KONTROL ET.")
+        
+        st.markdown("---")
+        if st.checkbox("SİSTEM KURTARMA (Admin)"):
+             if st.button("ONAR"):
                 st.session_state.db = {"admin": {"sifre": "pala500", "isim": "Patron", "onay": True, "rol": "admin", "mesajlar": [], "loglar": [], "portfoy": []}}
-                save_db(st.session_state.db); st.success("Sıfırlandı.")
+                save_db(st.session_state.db); st.success("SİSTEM SIFIRLANDI.")
 
 if not st.session_state.login_user: login_page()
 else: ana_uygulama()
