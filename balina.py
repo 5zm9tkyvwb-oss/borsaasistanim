@@ -1,4 +1,3 @@
-
 import streamlit as st
 import yfinance as yf
 import pandas as pd
@@ -127,6 +126,7 @@ def load_db():
 if 'db' not in st.session_state: st.session_state.db = load_db()
 if 'login_user' not in st.session_state: st.session_state.login_user = None
 if 'secilen_hisse' not in st.session_state: st.session_state.secilen_hisse = None
+if 'odeme_modu' not in st.session_state: st.session_state.odeme_modu = False # Ödeme modalı için
 
 # --- TASARIM (NEON CYBERPUNK) ---
 st.markdown("""
@@ -140,6 +140,22 @@ st.markdown("""
         font-family: 'Orbitron', sans-serif; 
     }
     
+    /* --- VIP TEKLİF KUTUSU --- */
+    .vip-offer-box {
+        background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+        padding: 20px;
+        border-radius: 15px;
+        text-align: center;
+        color: #050a14;
+        margin-bottom: 20px;
+        box-shadow: 0 0 25px rgba(56, 239, 125, 0.4);
+        border: 2px solid #fff;
+        animation: pulse-green 2s infinite;
+    }
+    .vip-price { font-size: 35px; font-weight: 900; text-shadow: 0 0 5px rgba(0,0,0,0.3); }
+    .vip-text { font-size: 18px; font-weight: bold; margin-bottom: 10px; }
+    @keyframes pulse-green { 0% { transform: scale(1); } 50% { transform: scale(1.01); box-shadow: 0 0 35px rgba(56, 239, 125, 0.7); } 100% { transform: scale(1); } }
+
     /* --- DENEME SÜRESİ SAYACI --- */
     .trial-counter {
         position: fixed; top: 15px; right: 20px;
@@ -172,29 +188,11 @@ st.markdown("""
         -webkit-text-fill-color: transparent;
         margin-bottom: 10px;
     }
-    .hero-subtitle {
-        font-size: 18px;
-        color: #e0e0e0;
-        margin-bottom: 20px;
-        line-height: 1.5;
-    }
-    .feature-box {
-        background: rgba(255, 255, 255, 0.05);
-        padding: 15px;
-        border-radius: 10px;
-        border-left: 4px solid #ff00ff;
-        margin-bottom: 10px;
-    }
+    .hero-subtitle { font-size: 18px; color: #e0e0e0; margin-bottom: 20px; line-height: 1.5; }
+    .feature-box { background: rgba(255, 255, 255, 0.05); padding: 15px; border-radius: 10px; border-left: 4px solid #ff00ff; margin-bottom: 10px; }
     .feature-title { color: #00fff9; font-weight: bold; font-size: 16px; margin-bottom: 5px;}
     .feature-desc { color: #aaa; font-size: 14px; }
-    
-    .login-container {
-        background: rgba(0,0,0,0.8);
-        padding: 30px;
-        border-radius: 20px;
-        border: 2px solid #ff00ff;
-        box-shadow: 0 0 30px rgba(255, 0, 255, 0.3);
-    }
+    .login-container { background: rgba(0,0,0,0.8); padding: 30px; border-radius: 20px; border: 2px solid #ff00ff; box-shadow: 0 0 30px rgba(255, 0, 255, 0.3); }
 
     /* --- DİĞER CSS --- */
     .top-list-box { background: rgba(0,0,0,0.5); padding: 10px; border-radius: 8px; border-top: 3px solid #00fff9; margin-bottom: 5px; }
@@ -308,7 +306,7 @@ def admin_dashboard():
         if st.button("Ekle") and u and p: db[u] = {"sifre": p, "isim": n, "onay": True, "rol": "user", "mesajlar": [], "portfoy": [], "kayit_tarihi": time.time()}; save_db(db); st.success("Eklendi.")
 
 # ==========================================
-# 💰 ÖDEME EKRANI
+# 💰 ÖDEME EKRANI (Deneme Bittiğinde)
 # ==========================================
 def payment_screen():
     u = st.session_state.login_user; db = load_db()
@@ -325,6 +323,41 @@ def payment_screen():
                 db[u]["mesajlar"].append(f"[{datetime.now().strftime('%d/%m %H:%M')}] {tx_msg}")
                 save_db(db); st.success("İletildi."); send_telegram(f"💰 ÖDEME: {u}")
     if st.button("ÇIKIŞ YAP 🔙"): st.session_state.login_user = None; st.rerun()
+
+# ==========================================
+# 💎 VIP UPSELL (Deneme Süresindeki Üye İçin Fırsat Kutusu)
+# ==========================================
+def render_vip_offer(user, db):
+    # Sadece deneme süresindeki (Onaysız ve Admin olmayan) kullanıcıya göster
+    if not db[user].get('onay') and not db[user].get('rol') == 'admin':
+        st.markdown(f"""
+        <div class="vip-offer-box">
+            <div class="vip-text">🔥 FIRSATI KAÇIRMA! VIP AYRICALIKLARA ŞİMDİ SAHİP OL 🔥</div>
+            <div class="vip-price">AYLIK $500</div>
+            <p style="margin-top:10px; font-size:14px;">Süre dolmadan yükselt, kesintisiz analize devam et.</p>
+        </div>
+        """, unsafe_allow_html=True)
+        
+        # Satın Al Butonu
+        if st.button("💎 HEMEN SATIN AL VE YÜKSELT", type="primary", use_container_width=True):
+            st.session_state.odeme_modu = not st.session_state.odeme_modu
+        
+        # Ödeme Alanı (Butona basınca açılır)
+        if st.session_state.odeme_modu:
+            with st.container():
+                st.markdown(f"""<div class="wallet-box" style="margin-top:10px;"><h4 style="color:#00fff9;">USDT (TRC20) ADRESİNİZ</h4><div class="wallet-addr" style="font-size:16px;">{USDT_ADDRESS}</div></div>""", unsafe_allow_html=True)
+                tx_input = st.text_input("Ödeme TXID Kodu:", placeholder="İşlem kodunu buraya yapıştır...")
+                if st.button("ÖDEMEYİ BİLDİR ✅"):
+                    if tx_input:
+                        if "mesajlar" not in db[user]: db[user]["mesajlar"] = []
+                        db[user]["mesajlar"].append(f"[{datetime.now().strftime('%H:%M')}] 💰 ERKEN ÖDEME: {tx_input}")
+                        save_db(db)
+                        st.success("Bildirim iletildi! Yöneticiler kontrol ediyor.")
+                        send_telegram(f"💰 SİSTEM İÇİNDEN SATIŞ GELDİ! Üye: {user}, TXID: {tx_input}")
+                        st.session_state.odeme_modu = False
+                    else:
+                        st.error("Lütfen TXID giriniz.")
+        st.markdown("---")
 
 # ==========================================
 # 📈 ANA UYGULAMA
@@ -354,7 +387,10 @@ def ana_uygulama(kalan_sure_dk=None):
     if c2.button("GÜVENLİ ÇIKIŞ"): st.session_state.login_user=None; st.rerun()
     if db[user].get('rol') == 'admin': admin_dashboard()
     
-    st.markdown("---")
+    # --- VIP FIRSAT KUTUSU ---
+    render_vip_offer(user, db)
+    
+    # 4'LÜ PİYASA TARAMA
     w_gain, m_gain, w_lose, spek = get_market_analysis()
     col_w, col_m, col_l, col_s = st.columns(4)
     with col_w:
@@ -395,41 +431,31 @@ def ana_uygulama(kalan_sure_dk=None):
 # 🔐 YENİ GİRİŞ EKRANI (Landing Page)
 # ==========================================
 def login_page():
-    # Sayfa Başlığı ve Reklam Alanı
     st.markdown("""<div style="text-align:center; padding:20px;"><h1 class="neon-title">PALA BALİNA AVCISI</h1></div>""", unsafe_allow_html=True)
-    
     col_info, col_login = st.columns([3, 2])
-    
     with col_info:
         st.markdown("""<div class="hero-container"><div class="hero-title">DERİN SULARIN HAKİMİ OL.</div><div class="hero-subtitle">Borsa İstanbul ve Kripto dünyasında kaybolma. Profesyonel balina avcılarının kullandığı terminale hoş geldin.</div><div class="feature-box"><div class="feature-title">🚀 CANLI SİNYAL YAKALAYICI</div><div class="feature-desc">Hangi hisseye balina girdi? RSI, Pivot ve Hacim patlamalarını saniyesinde gör.</div></div><div class="feature-box"><div class="feature-title">🧠 OTOMATİK TEKNİK ANALİZ</div><div class="feature-desc">Destek, Direnç, Pivot noktaları ve Trend analizleri tek tıkla ekranında.</div></div><div class="feature-box"><div class="feature-title">🛡️ VIP KULÜP AYRICALIĞI</div><div class="feature-desc">Sadece seçkin üyeler için özel veriler ve 7/24 piyasa takibi.</div></div><div style="margin-top:20px; text-align:center;"><img src="https://images.unsplash.com/photo-1560275619-4662e36fa65c?q=80&w=2070&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D" style="width:100%; border-radius:10px; border:1px solid #00fff9; opacity:0.8; box-shadow: 0 0 20px rgba(0, 255, 249, 0.3);"></div></div>""", unsafe_allow_html=True)
-
     with col_login:
         st.markdown("<div class='login-container'>", unsafe_allow_html=True)
         tab1, tab2 = st.tabs(["🔑 GİRİŞ YAP", "📝 10 DK ÜCRETSİZ DENE"])
-        
         with tab1:
-            k = st.text_input("Kullanıcı Adı", key="l_u")
-            s = st.text_input("Şifre", type="password", key="l_p")
+            k = st.text_input("Kullanıcı Adı", key="l_u"); s = st.text_input("Şifre", type="password", key="l_p")
             st.markdown("<br>", unsafe_allow_html=True)
             if st.button("TERMİNALE BAĞLAN ⚡", type="primary", use_container_width=True):
                 db = load_db()
                 if k in db and db[k]['sifre'] == s: st.session_state.login_user = k; st.rerun()
                 else: st.error("Hatalı Giriş!")
-
         with tab2:
             st.markdown("##### Hızlı Kayıt Ol & Başla")
-            u = st.text_input("Kullanıcı Adı Belirle", key="r_u")
-            n = st.text_input("Adın Soyadın", key="r_n")
-            p = st.text_input("Şifre Belirle", type="password", key="r_p")
+            u = st.text_input("Kullanıcı Adı Belirle", key="r_u"); n = st.text_input("Adın Soyadın", key="r_n"); p = st.text_input("Şifre Belirle", type="password", key="r_p")
             st.markdown("<br>", unsafe_allow_html=True)
             if st.button("KAYDI TAMAMLA VE BAŞLA 🚀", type="primary", use_container_width=True):
                 db = load_db()
                 if u in db: st.warning("Bu isim alınmış!")
                 elif u and p:
                     db[u] = {"sifre": p, "isim": n, "onay": False, "rol": "user", "mesajlar": [], "portfoy": [], "kayit_tarihi": time.time()}
-                    save_db(db); st.success("Kayıt Başarılı! Giriş sekmesinden giriş yapın."); send_telegram(f"🆕 ÜYE: {u}")
+                    save_db(db); st.success("Kayıt Başarılı!"); send_telegram(f"🆕 ÜYE: {u}")
         st.markdown("</div>", unsafe_allow_html=True)
-
     if st.checkbox("Admin Reset"):
         if st.button("Reset"): st.session_state.db = {"admin": {"sifre": "pala500", "isim": "Patron", "onay": True, "rol": "admin", "mesajlar": [], "loglar": [], "portfoy": [], "kayit_tarihi": time.time()}}; save_db(st.session_state.db); st.success("Resetlendi.")
 
@@ -443,8 +469,7 @@ else:
         if user_data.get('rol') == 'admin': ana_uygulama()
         elif user_data.get('onay') == True: ana_uygulama()
         else:
-            kayit_zamani = user_data.get('kayit_tarihi', 0)
-            gecen_sure_dk = (time.time() - kayit_zamani) / 60
+            kayit_zamani = user_data.get('kayit_tarihi', 0); gecen_sure_dk = (time.time() - kayit_zamani) / 60
             if gecen_sure_dk < DENEME_SURESI_DK:
                 kalan = DENEME_SURESI_DK - gecen_sure_dk
                 ana_uygulama(kalan_sure_dk=kalan)
