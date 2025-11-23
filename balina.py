@@ -1,3 +1,4 @@
+
 import streamlit as st
 import yfinance as yf
 import pandas as pd
@@ -151,6 +152,10 @@ st.markdown("""
         margin-bottom: 10px;
         font-size: 12px;
     }
+    
+    /* Sidebar Özelleştirme */
+    section[data-testid="stSidebar"] { background-color: #0b1116 !important; border-right: 1px solid #00fff9; }
+    .sidebar-header { color: #00fff9; font-weight: bold; font-size: 18px; margin-bottom: 10px; border-bottom: 1px solid #ff00ff; padding-bottom: 5px; }
     </style>
     <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&display=swap" rel="stylesheet">
 """, unsafe_allow_html=True)
@@ -256,12 +261,16 @@ def grafik_ciz(symbol, show_sma, show_bb):
 
 def admin_dashboard():
     st.sidebar.title("👑 YÖNETİM"); menu = st.sidebar.radio("Menü:", ["Üye İstatistik", "Üyeler", "Duyuru"]); db = load_db()
+    
     if menu == "Üye İstatistik":
         total = len(db)-1
         vip = sum(1 for k, v in db.items() if k != "admin" and v.get('onay'))
         trial = total - vip
         c1, c2, c3 = st.columns(3)
-        c1.metric("TOPLAM ÜYE", total); c2.metric("💎 VIP ÜYELER", vip); c3.metric("⏳ DENEME SÜRECİ", trial)
+        c1.metric("TOPLAM ÜYE", total)
+        c2.metric("💎 VIP ÜYELER", vip)
+        c3.metric("⏳ DENEME SÜRECİ", trial)
+        
     elif menu == "Üyeler":
         for k, v in db.items():
             if k != "admin":
@@ -273,9 +282,7 @@ def admin_dashboard():
         d = st.text_input("Mesaj:"); 
         if st.button("YAYINLA") and d: db["admin"]["duyuru"] = d; save_db(db); st.success("Yayında!")
 
-# --- EKSİK OLAN FONKSİYON EKLENDİ ---
 def render_vip_offer(user, db):
-    # Sadece deneme süresindeki (Onaysız ve Admin olmayan) kullanıcıya göster
     if not db[user].get('onay') and not db[user].get('rol') == 'admin':
         st.markdown(f"""
         <div class="vip-offer-box">
@@ -340,8 +347,7 @@ def ana_uygulama(kalan_sure_dk=None):
         c2.markdown(f"<div class='top-list-box' style='border-color:#38ef7d;'><div class='list-title'>🗓️ AYLIK ROKETLER</div>{''.join([f'<div class=list-item><span>{i["Sembol"]}</span><span class=pos>%{i["Degisim"]:.1f}</span></div>' for i in mg])}</div>", unsafe_allow_html=True)
         c3.markdown(f"<div class='top-list-box' style='border-color:#ef473a;'><div class='list-title'>🔴 HAFTALIK KAYIPLAR</div>{''.join([f'<div class=list-item><span>{i["Sembol"]}</span><span class=neg>%{i["Degisim"]:.1f}</span></div>' for i in wl])}</div>", unsafe_allow_html=True)
         c4.markdown(f"<div class='top-list-box' style='border-color:#ff00ff;'><div class='list-title'>🎰 SPEK / VOLATİL</div>{''.join([f'<div class=list-item><span>{i["Sembol"]}</span><span class=spek>⚡ {i["Volatilite"]:.1f}</span></div>' for i in sp])}</div>", unsafe_allow_html=True)
-    else: st.info("Piyasa verileri yükleniyor veya kapalı.")
-
+    
     st.markdown("---")
     col_sel, col_ind = st.columns([2, 2])
     with col_sel: hisse_secim = st.selectbox("Hisse Analiz Et:", [f"{h}.IS" for h in BIST_HISSELERI if "USD" not in h] + [h for h in BIST_HISSELERI if "USD" in h])
@@ -397,4 +403,27 @@ def login_page():
                 elif u and p:
                     db[u] = {"sifre": p, "isim": n, "onay": False, "rol": "user", "mesajlar": [], "portfoy": [], "kayit_tarihi": time.time()}
                     save_db(db); st.success("Kayıt Başarılı!"); send_telegram(f"🆕 ÜYE: {u}")
-        st.markdown("</div>", unsafe_allow_html
+        st.markdown("</div>", unsafe_allow_html=True)
+    
+    # GİRİŞ EKRANI YASAL UYARI
+    render_disclaimer()
+
+    if st.checkbox("Admin Reset"):
+        if st.button("Reset"): st.session_state.db = {"admin": {"sifre": "pala500", "isim": "Patron", "onay": True, "rol": "admin", "mesajlar": [], "loglar": [], "portfoy": [], "kayit_tarihi": time.time()}}; save_db(st.session_state.db); st.success("Resetlendi.")
+
+# --- YETKİLENDİRME VE SÜRE KONTROLÜ ---
+if not st.session_state.login_user:
+    login_page()
+else:
+    u_id = st.session_state.login_user; db = load_db()
+    if u_id in db:
+        user_data = db[u_id]
+        if user_data.get('rol') == 'admin': ana_uygulama()
+        elif user_data.get('onay') == True: ana_uygulama()
+        else:
+            kayit_zamani = user_data.get('kayit_tarihi', 0); gecen_sure_dk = (time.time() - kayit_zamani) / 60
+            if gecen_sure_dk < DENEME_SURESI_DK:
+                kalan = DENEME_SURESI_DK - gecen_sure_dk
+                ana_uygulama(kalan_sure_dk=kalan)
+            else: payment_screen()
+    else: st.session_state.login_user = None; st.rerun()
