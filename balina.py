@@ -1,4 +1,3 @@
-
 import streamlit as st
 import yfinance as yf
 import pandas as pd
@@ -17,7 +16,7 @@ st.set_page_config(page_title="PALA Balina Avcısı", layout="wide", page_icon="
 # 💰 AYARLAR
 # ==========================================
 USDT_ADDRESS = "TV4DK7vckLWJciKSqhvY5hEpcw1Ka522AQ"
-DENEME_SURESI_DK = 10  # 10 Dakika VIP Deneme
+DENEME_SURESI_DK = 10 
 
 # ==========================================
 # 📜 BIST HİSSE LİSTESİ
@@ -180,22 +179,30 @@ st.markdown("""
     <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&display=swap" rel="stylesheet">
 """, unsafe_allow_html=True)
 
-# --- CANLI DÖVİZ GETİRİCİ ---
+# --- GELİŞMİŞ CANLI VERİ MOTORU ---
 def get_live_rates():
     try:
-        # Yahoo Finance üzerinden anlık çekiyoruz
-        tickers = ["TRY=X", "EURTRY=X", "GC=F", "BTC-USD"]
-        data = yf.download(tickers, period="1d", interval="1m", progress=False)['Close'].iloc[-1]
+        # Semboller: USDTRY, EURTRY, ONS ALTIN, ONS GÜMÜŞ, BRENT PETROL, BTC, ETH
+        tickers = ["TRY=X", "EURTRY=X", "GC=F", "SI=F", "BZ=F", "BTC-USD", "ETH-USD"]
+        
+        # Anlık değil '1d' ile son kapanışı çekiyoruz (Daha kararlı)
+        data = yf.download(tickers, period="1d", progress=False)['Close'].iloc[-1]
         
         usd = data['TRY=X']
         eur = data['EURTRY=X']
-        gram_altin = data['GC=F'] * usd / 31.1  # Ons to Gram TL hesabı
-        btc = data['BTC-USD']
         
-        return usd, eur, gram_altin, btc
-    except:
-        # Eğer veri çekilemezse (Yedek değerler - Kullanıcının istediği yüksek değerlere yakın)
-        return 42.50, 45.20, 3100.0, 98000.0
+        # Ons -> Gram Hesaplaması: (Ons Fiyatı * Dolar Kuru) / 31.1035
+        gram_altin = (data['GC=F'] * usd) / 31.1035
+        gram_gumus = (data['SI=F'] * usd) / 31.1035
+        
+        petrol = data['BZ=F']
+        btc = data['BTC-USD']
+        eth = data['ETH-USD']
+        
+        return usd, eur, gram_altin, gram_gumus, petrol, btc, eth
+    except Exception as e:
+        # Hata durumunda boş dönmemesi için güvenli değerler (Bunu nadiren görürsün)
+        return 0, 0, 0, 0, 0, 0, 0
 
 # --- YARDIMCI FONKSİYONLAR ---
 def log_ekle(mesaj):
@@ -318,13 +325,13 @@ def payment_screen():
 # 📈 ANA UYGULAMA
 # ==========================================
 def ana_uygulama(kalan_sure_dk=None):
-    # KeyError Çözümü: Veritabanını burada tazeliyoruz
+    # Veritabanını tazeleyelim (Hata Önleyici)
     db = load_db()
     user = st.session_state.login_user
     
-    # Güvenlik Kontrolü
+    # Eğer kullanıcı veritabanında yoksa at
     if user not in db:
-        st.error("Oturum verisi bozuldu. Lütfen tekrar giriş yapın.")
+        st.error("Oturum zaman aşımı. Tekrar giriş yapın.")
         st.session_state.login_user = None
         time.sleep(2)
         st.rerun()
@@ -336,13 +343,13 @@ def ana_uygulama(kalan_sure_dk=None):
         st.markdown(f"""<div class="trial-counter">⏳ DENEME: {dakika:02d}:{saniye:02d}</div>""", unsafe_allow_html=True)
         st.toast(f"Deneme Sürümü Aktif! Kalan Süre: {dakika} Dakika", icon="⏳")
 
-    # CANLI KUR GETİR
-    usd, eur, gram, btc = get_live_rates()
+    # CANLI KURLARI ÇEK VE GÖSTER
+    usd, eur, gram_altin, gram_gumus, petrol, btc, eth = get_live_rates()
 
     st.markdown(f"""
     <div style="background:#050a14; border-bottom:2px solid #00fff9; padding:5px; margin-bottom:20px;">
         <div style="animation:marquee 30s linear infinite; color:#00fff9; font-weight:800; white-space:nowrap;">
-            💵 USD: {usd:.2f} ⏐ 💶 EUR: {eur:.2f} ⏐ 🟡 GR ALTIN: {gram:.0f} TL ⏐ ₿ BTC: ${btc:,.0f} ⏐ 🦈 PALA BALİNA AVCISI AKTİF
+            💵 USD: {usd:.2f} ⏐ 💶 EUR: {eur:.2f} ⏐ 🟡 GR ALTIN: {gram_altin:.0f} TL ⏐ ⚪ GR GÜMÜŞ: {gram_gumus:.2f} TL ⏐ ⛽ BRENT: ${petrol:.1f} ⏐ ₿ BTC: ${btc:,.0f} ⏐ 🔷 ETH: ${eth:,.0f} ⏐ 🦈 PALA BALİNA AVCISI
         </div>
     </div><style>@keyframes marquee {{ 0% {{transform:translateX(0);}} 100% {{transform:translateX(-100%);}} }}</style>
     """, unsafe_allow_html=True)
