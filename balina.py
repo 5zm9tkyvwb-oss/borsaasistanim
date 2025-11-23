@@ -184,7 +184,7 @@ st.markdown("""
         border-left: 4px solid #ff00ff;
         margin-bottom: 10px;
     }
-    .feature-title { color: #00fff9; font-weight: bold; font-size: 16px; }
+    .feature-title { color: #00fff9; font-weight: bold; font-size: 16px; margin-bottom: 5px;}
     .feature-desc { color: #aaa; font-size: 14px; }
     
     .login-container {
@@ -397,38 +397,11 @@ def login_page():
     # Sayfa Başlığı ve Reklam Alanı
     st.markdown("""<div style="text-align:center; padding:20px;"><h1 class="neon-title">PALA BALİNA AVCISI</h1></div>""", unsafe_allow_html=True)
     
-    # İKİ SÜTUNLU YAPI: SOL (REKLAM/BİLGİ) - SAĞ (GİRİŞ/KAYIT)
     col_info, col_login = st.columns([3, 2])
     
     with col_info:
-        st.markdown("""
-        <div class="hero-container">
-            <div class="hero-title">DERİN SULARIN HAKİMİ OL.</div>
-            <div class="hero-subtitle">
-                Borsa İstanbul ve Kripto dünyasında kaybolma. 
-                Profesyonel balina avcılarının kullandığı terminale hoş geldin.
-            </div>
-            
-            <div class="feature-box">
-                <div class="feature-title">🚀 CANLI SİNYAL YAKALAYICI</div>
-                <div class="feature-desc">Hangi hisseye balina girdi? RSI, Pivot ve Hacim patlamalarını saniyesinde gör.</div>
-            </div>
-            
-            <div class="feature-box">
-                <div class="feature-title">🧠 OTOMATİK TEKNİK ANALİZ</div>
-                <div class="feature-desc">Destek, Direnç, Pivot noktaları ve Trend analizleri tek tıkla ekranında.</div>
-            </div>
-            
-            <div class="feature-box">
-                <div class="feature-title">🛡️ VIP KULÜP AYRICALIĞI</div>
-                <div class="feature-desc">Sadece seçkin üyeler için özel veriler ve 7/24 piyasa takibi.</div>
-            </div>
-            
-            <div style="margin-top:20px; text-align:center;">
-                <img src="https://images.unsplash.com/photo-1611974765270-ca1258822981?q=80&w=2070&auto=format&fit=crop" style="width:100%; border-radius:10px; border:1px solid #00fff9; opacity:0.8;">
-            </div>
-        </div>
-        """, unsafe_allow_html=True)
+        # GİRİNTİSİZ HTML STRING (Hata Önleyici)
+        st.markdown("""<div class="hero-container"><div class="hero-title">DERİN SULARIN HAKİMİ OL.</div><div class="hero-subtitle">Borsa İstanbul ve Kripto dünyasında kaybolma. Profesyonel balina avcılarının kullandığı terminale hoş geldin.</div><div class="feature-box"><div class="feature-title">🚀 CANLI SİNYAL YAKALAYICI</div><div class="feature-desc">Hangi hisseye balina girdi? RSI, Pivot ve Hacim patlamalarını saniyesinde gör.</div></div><div class="feature-box"><div class="feature-title">🧠 OTOMATİK TEKNİK ANALİZ</div><div class="feature-desc">Destek, Direnç, Pivot noktaları ve Trend analizleri tek tıkla ekranında.</div></div><div class="feature-box"><div class="feature-title">🛡️ VIP KULÜP AYRICALIĞI</div><div class="feature-desc">Sadece seçkin üyeler için özel veriler ve 7/24 piyasa takibi.</div></div><div style="margin-top:20px; text-align:center;"><img src="https://images.unsplash.com/photo-1611974765270-ca1258822981?q=80&w=2070&auto=format&fit=crop" style="width:100%; border-radius:10px; border:1px solid #00fff9; opacity:0.8;"></div></div>""", unsafe_allow_html=True)
 
     with col_login:
         st.markdown("<div class='login-container'>", unsafe_allow_html=True)
