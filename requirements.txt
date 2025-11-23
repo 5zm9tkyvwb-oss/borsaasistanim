@@ -1,4 +1,6 @@
-XlsxWriter
-pandas
-yfinance
 streamlit
+yfinance
+pandas
+plotly
+requests
+XlsxWriter
