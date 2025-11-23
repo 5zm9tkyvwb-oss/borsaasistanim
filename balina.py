@@ -155,54 +155,70 @@ st.markdown("""
     }
     @keyframes blink { 50% { border-color: red; color: red; } }
 
-    /* --- TABLOLAR --- */
-    .top-list-box {
-        background: rgba(0,0,0,0.5); padding: 10px; border-radius: 8px; border-top: 3px solid #00fff9; margin-bottom: 5px;
+    /* --- REKLAM / LANDING PAGE CSS --- */
+    .hero-container {
+        padding: 40px;
+        background: rgba(0,0,0,0.4);
+        border-radius: 20px;
+        border: 1px solid #00fff9;
+        margin-bottom: 20px;
     }
+    .hero-title {
+        font-size: 40px;
+        font-weight: 900;
+        background: -webkit-linear-gradient(#00fff9, #ff00ff);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        margin-bottom: 10px;
+    }
+    .hero-subtitle {
+        font-size: 18px;
+        color: #e0e0e0;
+        margin-bottom: 20px;
+        line-height: 1.5;
+    }
+    .feature-box {
+        background: rgba(255, 255, 255, 0.05);
+        padding: 15px;
+        border-radius: 10px;
+        border-left: 4px solid #ff00ff;
+        margin-bottom: 10px;
+    }
+    .feature-title { color: #00fff9; font-weight: bold; font-size: 16px; }
+    .feature-desc { color: #aaa; font-size: 14px; }
+    
+    .login-container {
+        background: rgba(0,0,0,0.8);
+        padding: 30px;
+        border-radius: 20px;
+        border: 2px solid #ff00ff;
+        box-shadow: 0 0 30px rgba(255, 0, 255, 0.3);
+    }
+
+    /* --- DİĞER CSS --- */
+    .top-list-box { background: rgba(0,0,0,0.5); padding: 10px; border-radius: 8px; border-top: 3px solid #00fff9; margin-bottom: 5px; }
     .list-title { color: #00fff9; font-weight: bold; margin-bottom: 5px; text-transform: uppercase; font-size: 14px; }
     .list-item { font-size: 13px; border-bottom: 1px solid #333; padding: 3px 0; display: flex; justify-content: space-between; }
     .pos { color: #38ef7d; } .neg { color: #ef473a; } .spek { color: #ff00ff; }
-    
-    /* --- DİĞER CSS --- */
-    .neon-title {
-        font-size: 60px !important; font-weight: 900; color: #fff; text-align: center;
-        text-shadow: 0 0 10px #00fff9, 0 0 40px #00fff9, 0 0 80px #ff00ff;
-    }
-    .wallet-box {
-        background: rgba(0,0,0,0.6); border: 2px solid #00fff9; padding: 20px; border-radius: 10px; text-align: center; margin-bottom: 20px; box-shadow: 0 0 20px rgba(0, 255, 249, 0.2);
-    }
-    .wallet-addr {
-        font-family: monospace; font-size: 20px; color: #ff00ff; font-weight: bold; word-break: break-all; background: #000; padding: 10px; border-radius: 5px; border: 1px dashed #ff00ff;
-    }
+    .neon-title { font-size: 60px !important; font-weight: 900; color: #fff; text-align: center; text-shadow: 0 0 10px #00fff9, 0 0 40px #00fff9, 0 0 80px #ff00ff; }
+    .wallet-box { background: rgba(0,0,0,0.6); border: 2px solid #00fff9; padding: 20px; border-radius: 10px; text-align: center; margin-bottom: 20px; box-shadow: 0 0 20px rgba(0, 255, 249, 0.2); }
+    .wallet-addr { font-family: monospace; font-size: 20px; color: #ff00ff; font-weight: bold; word-break: break-all; background: #000; padding: 10px; border-radius: 5px; border: 1px dashed #ff00ff; }
     div.stButton > button { background: linear-gradient(90deg, #00fff9, #ff00ff) !important; color: #000 !important; border: none !important; font-weight: 800 !important; }
     </style>
     <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&display=swap" rel="stylesheet">
 """, unsafe_allow_html=True)
 
-# --- GELİŞMİŞ CANLI VERİ MOTORU ---
+# --- CANLI VERİ MOTORU ---
 def get_live_rates():
     try:
-        # Semboller: USDTRY, EURTRY, ONS ALTIN, ONS GÜMÜŞ, BRENT PETROL, BTC, ETH
         tickers = ["TRY=X", "EURTRY=X", "GC=F", "SI=F", "BZ=F", "BTC-USD", "ETH-USD"]
-        
-        # Anlık değil '1d' ile son kapanışı çekiyoruz (Daha kararlı)
         data = yf.download(tickers, period="1d", progress=False)['Close'].iloc[-1]
-        
-        usd = data['TRY=X']
-        eur = data['EURTRY=X']
-        
-        # Ons -> Gram Hesaplaması: (Ons Fiyatı * Dolar Kuru) / 31.1035
+        usd = data['TRY=X']; eur = data['EURTRY=X']
         gram_altin = (data['GC=F'] * usd) / 31.1035
         gram_gumus = (data['SI=F'] * usd) / 31.1035
-        
-        petrol = data['BZ=F']
-        btc = data['BTC-USD']
-        eth = data['ETH-USD']
-        
+        petrol = data['BZ=F']; btc = data['BTC-USD']; eth = data['ETH-USD']
         return usd, eur, gram_altin, gram_gumus, petrol, btc, eth
-    except Exception as e:
-        # Hata durumunda boş dönmemesi için güvenli değerler (Bunu nadiren görürsün)
-        return 0, 0, 0, 0, 0, 0, 0
+    except: return 0, 0, 0, 0, 0, 0, 0
 
 # --- YARDIMCI FONKSİYONLAR ---
 def log_ekle(mesaj):
@@ -263,52 +279,40 @@ def admin_dashboard():
     st.sidebar.title("👑 YÖNETİM")
     menu = st.sidebar.radio("Menü:", ["Üye Yönetimi", "Bildirimler", "Manuel Ekle"])
     db = load_db()
-    
     if menu == "Üye Yönetimi":
         st.subheader("👥 KULLANICI LİSTESİ")
         for k, v in db.items():
             if k != "admin":
-                reg_time = v.get('kayit_tarihi', 0)
-                gecen_sure = (time.time() - reg_time) / 60
-                kalan_sure = DENEME_SURESI_DK - gecen_sure
-                
+                reg_time = v.get('kayit_tarihi', 0); gecen_sure = (time.time() - reg_time) / 60; kalan_sure = DENEME_SURESI_DK - gecen_sure
                 durum_ikon = "🔴 BİTTİ"
                 if v.get('onay'): durum_ikon = "✅ PREMİUM"
                 elif kalan_sure > 0: durum_ikon = f"⏳ DENEME ({int(kalan_sure)} dk)"
-                
                 with st.expander(f"👤 {v.get('isim')} ({k}) - {durum_ikon}"):
                     c1, c2, c3 = st.columns(3)
                     if not v.get('onay'):
-                        if c1.button(f"ONAYLA (Premium) 🏆", key=f"app_{k}"): db[k]['onay'] = True; save_db(db); st.rerun()
+                        if c1.button(f"ONAYLA", key=f"app_{k}"): db[k]['onay'] = True; save_db(db); st.rerun()
                     else:
-                        if c1.button(f"İPTAL ET ⛔", key=f"ban_{k}"): db[k]['onay'] = False; save_db(db); st.rerun()
-                    
-                    if c2.button(f"SİL 🗑️", key=f"del_{k}"): del db[k]; save_db(db); st.rerun()
-                    if c3.button(f"SÜREYİ SIFIRLA", key=f"rst_{k}"): 
-                        db[k]['kayit_tarihi'] = time.time(); db[k]['onay'] = False; save_db(db); st.success("Süre sıfırlandı!"); st.rerun()
-
+                        if c1.button(f"İPTAL", key=f"ban_{k}"): db[k]['onay'] = False; save_db(db); st.rerun()
+                    if c2.button(f"SİL", key=f"del_{k}"): del db[k]; save_db(db); st.rerun()
+                    if c3.button(f"SIFIRLA", key=f"rst_{k}"): db[k]['kayit_tarihi'] = time.time(); db[k]['onay'] = False; save_db(db); st.success("Sıfırlandı!"); st.rerun()
     elif menu == "Bildirimler":
-        st.subheader("📩 ÖDEME BİLDİRİMLERİ")
+        st.subheader("📩 BİLDİRİMLER")
         for k, v in db.items():
             if "mesajlar" in v and v['mesajlar']:
                 with st.expander(f"✉️ {k} ({len(v['mesajlar'])})"):
                     for m in v['mesajlar']: st.info(m)
                     if st.button(f"Temizle {k}", key=f"clr_{k}"): db[k]['mesajlar'] = []; save_db(db); st.rerun()
-
     elif menu == "Manuel Ekle":
         u = st.text_input("Nick"); p = st.text_input("Şifre"); n = st.text_input("İsim")
-        if st.button("Ekle") and u and p:
-            db[u] = {"sifre": p, "isim": n, "onay": True, "rol": "user", "mesajlar": [], "portfoy": [], "kayit_tarihi": time.time()}
-            save_db(db); st.success("Eklendi.")
+        if st.button("Ekle") and u and p: db[u] = {"sifre": p, "isim": n, "onay": True, "rol": "user", "mesajlar": [], "portfoy": [], "kayit_tarihi": time.time()}; save_db(db); st.success("Eklendi.")
 
 # ==========================================
-# 💰 ÖDEME EKRANI (Deneme Bittiğinde)
+# 💰 ÖDEME EKRANI
 # ==========================================
 def payment_screen():
     u = st.session_state.login_user; db = load_db()
     st.markdown("""<div style="text-align:center; padding-top:20px;"><h1 style="color:#ff00ff;">⛔ DENEME SÜRESİ DOLDU ⛔</h1><p style="font-size:18px;">10 Dakikalık VIP kullanım hakkınız bitti.</p><p>Devam etmek için Premium Üyelik satın almalısınız.</p></div>""", unsafe_allow_html=True)
     st.markdown(f"""<div class="wallet-box"><h3 style="color:#00fff9;">💎 USDT (TRC20) CÜZDAN</h3><div class="wallet-addr">{USDT_ADDRESS}</div></div>""", unsafe_allow_html=True)
-    
     st.subheader("📩 Ödeme Bildirimi")
     col1, col2 = st.columns([3, 1])
     with col1: tx_msg = st.text_area("Açıklama / TXID")
@@ -325,25 +329,14 @@ def payment_screen():
 # 📈 ANA UYGULAMA
 # ==========================================
 def ana_uygulama(kalan_sure_dk=None):
-    # Veritabanını tazeleyelim (Hata Önleyici)
-    db = load_db()
-    user = st.session_state.login_user
-    
-    # Eğer kullanıcı veritabanında yoksa at
-    if user not in db:
-        st.error("Oturum zaman aşımı. Tekrar giriş yapın.")
-        st.session_state.login_user = None
-        time.sleep(2)
-        st.rerun()
+    db = load_db(); user = st.session_state.login_user
+    if user not in db: st.session_state.login_user = None; time.sleep(1); st.rerun()
 
-    # SAYACI GÖSTER (Eğer premium değilse ve süre varsa)
     if kalan_sure_dk is not None:
-        dakika = int(kalan_sure_dk)
-        saniye = int((kalan_sure_dk - dakika) * 60)
-        st.markdown(f"""<div class="trial-counter">⏳ DENEME: {dakika:02d}:{saniye:02d}</div>""", unsafe_allow_html=True)
-        st.toast(f"Deneme Sürümü Aktif! Kalan Süre: {dakika} Dakika", icon="⏳")
+        dk = int(kalan_sure_dk); sn = int((kalan_sure_dk - dk) * 60)
+        st.markdown(f"""<div class="trial-counter">⏳ DENEME: {dk:02d}:{sn:02d}</div>""", unsafe_allow_html=True)
+        st.toast(f"Deneme Sürümü Aktif! Kalan Süre: {dk} Dakika", icon="⏳")
 
-    # CANLI KURLARI ÇEK VE GÖSTER
     usd, eur, gram_altin, gram_gumus, petrol, btc, eth = get_live_rates()
 
     st.markdown(f"""
@@ -361,8 +354,6 @@ def ana_uygulama(kalan_sure_dk=None):
     if db[user].get('rol') == 'admin': admin_dashboard()
     
     st.markdown("---")
-    
-    # 4'LÜ PİYASA TARAMA
     w_gain, m_gain, w_lose, spek = get_market_analysis()
     col_w, col_m, col_l, col_s = st.columns(4)
     with col_w:
@@ -400,61 +391,89 @@ def ana_uygulama(kalan_sure_dk=None):
         if st.button("Kapat"): st.session_state.secilen_hisse=None; st.rerun()
 
 # ==========================================
-# 🔐 GİRİŞ & KONTROL MEKANİZMASI
+# 🔐 YENİ GİRİŞ EKRANI (Landing Page)
 # ==========================================
 def login_page():
-    st.markdown("""<div style="text-align:center; padding:50px;"><h1 class="neon-title">PALA BALİNA</h1><p style="color:#00fff9;">MEMBERSHIP ACCESS TERMINAL</p></div>""", unsafe_allow_html=True)
-    tab1, tab2 = st.tabs(["🔑 GİRİŞ YAP", "📝 ÜYE OL (10 Dk Ücretsiz)"])
+    # Sayfa Başlığı ve Reklam Alanı
+    st.markdown("""<div style="text-align:center; padding:20px;"><h1 class="neon-title">PALA BALİNA AVCISI</h1></div>""", unsafe_allow_html=True)
     
-    with tab1:
-        c1, c2, c3 = st.columns([1,2,1])
-        with c2:
-            k = st.text_input("Kullanıcı", key="l_u"); s = st.text_input("Şifre", type="password", key="l_p")
-            if st.button("GİRİŞ ⚡", type="primary"):
+    # İKİ SÜTUNLU YAPI: SOL (REKLAM/BİLGİ) - SAĞ (GİRİŞ/KAYIT)
+    col_info, col_login = st.columns([3, 2])
+    
+    with col_info:
+        st.markdown("""
+        <div class="hero-container">
+            <div class="hero-title">DERİN SULARIN HAKİMİ OL.</div>
+            <div class="hero-subtitle">
+                Borsa İstanbul ve Kripto dünyasında kaybolma. 
+                Profesyonel balina avcılarının kullandığı terminale hoş geldin.
+            </div>
+            
+            <div class="feature-box">
+                <div class="feature-title">🚀 CANLI SİNYAL YAKALAYICI</div>
+                <div class="feature-desc">Hangi hisseye balina girdi? RSI, Pivot ve Hacim patlamalarını saniyesinde gör.</div>
+            </div>
+            
+            <div class="feature-box">
+                <div class="feature-title">🧠 OTOMATİK TEKNİK ANALİZ</div>
+                <div class="feature-desc">Destek, Direnç, Pivot noktaları ve Trend analizleri tek tıkla ekranında.</div>
+            </div>
+            
+            <div class="feature-box">
+                <div class="feature-title">🛡️ VIP KULÜP AYRICALIĞI</div>
+                <div class="feature-desc">Sadece seçkin üyeler için özel veriler ve 7/24 piyasa takibi.</div>
+            </div>
+            
+            <div style="margin-top:20px; text-align:center;">
+                <img src="https://images.unsplash.com/photo-1611974765270-ca1258822981?q=80&w=2070&auto=format&fit=crop" style="width:100%; border-radius:10px; border:1px solid #00fff9; opacity:0.8;">
+            </div>
+        </div>
+        """, unsafe_allow_html=True)
+
+    with col_login:
+        st.markdown("<div class='login-container'>", unsafe_allow_html=True)
+        tab1, tab2 = st.tabs(["🔑 GİRİŞ YAP", "📝 10 DK ÜCRETSİZ DENE"])
+        
+        with tab1:
+            k = st.text_input("Kullanıcı Adı", key="l_u")
+            s = st.text_input("Şifre", type="password", key="l_p")
+            st.markdown("<br>", unsafe_allow_html=True)
+            if st.button("TERMİNALE BAĞLAN ⚡", type="primary", use_container_width=True):
                 db = load_db()
                 if k in db and db[k]['sifre'] == s: st.session_state.login_user = k; st.rerun()
-                else: st.error("Hatalı!")
-    with tab2:
-        c1, c2, c3 = st.columns([1,2,1])
-        with c2:
-            u = st.text_input("Kullanıcı Adı", key="r_u"); n = st.text_input("İsim", key="r_n"); p = st.text_input("Şifre", type="password", key="r_p")
-            if st.button("KAYIT OL (BAŞLA) ✅"):
+                else: st.error("Hatalı Giriş!")
+
+        with tab2:
+            st.markdown("##### Hızlı Kayıt Ol & Başla")
+            u = st.text_input("Kullanıcı Adı Belirle", key="r_u")
+            n = st.text_input("Adın Soyadın", key="r_n")
+            p = st.text_input("Şifre Belirle", type="password", key="r_p")
+            st.markdown("<br>", unsafe_allow_html=True)
+            if st.button("KAYDI TAMAMLA VE BAŞLA 🚀", type="primary", use_container_width=True):
                 db = load_db()
-                if u in db: st.warning("Bu isim dolu!")
+                if u in db: st.warning("Bu isim alınmış!")
                 elif u and p:
                     db[u] = {"sifre": p, "isim": n, "onay": False, "rol": "user", "mesajlar": [], "portfoy": [], "kayit_tarihi": time.time()}
                     save_db(db); st.success("Kayıt Başarılı! Giriş sekmesinden giriş yapın."); send_telegram(f"🆕 ÜYE: {u}")
+        st.markdown("</div>", unsafe_allow_html=True)
 
     if st.checkbox("Admin Reset"):
         if st.button("Reset"): st.session_state.db = {"admin": {"sifre": "pala500", "isim": "Patron", "onay": True, "rol": "admin", "mesajlar": [], "loglar": [], "portfoy": [], "kayit_tarihi": time.time()}}; save_db(st.session_state.db); st.success("Resetlendi.")
 
-# --- YETKİLENDİRME VE SÜRE KONTROLÜ ---
+# --- YETKİLENDİRME ---
 if not st.session_state.login_user:
     login_page()
 else:
     u_id = st.session_state.login_user; db = load_db()
     if u_id in db:
         user_data = db[u_id]
-        
-        # 1. ADMIN - Her yere girer
-        if user_data.get('rol') == 'admin':
-            ana_uygulama()
-            
-        # 2. ONAYLI ÜYE (PREMIUM) - Her yere girer, süre sınırı yok
-        elif user_data.get('onay') == True:
-            ana_uygulama()
-            
-        # 3. DENEME SÜRECİNDEKİ ÜYE
+        if user_data.get('rol') == 'admin': ana_uygulama()
+        elif user_data.get('onay') == True: ana_uygulama()
         else:
             kayit_zamani = user_data.get('kayit_tarihi', 0)
             gecen_sure_dk = (time.time() - kayit_zamani) / 60
-            
             if gecen_sure_dk < DENEME_SURESI_DK:
-                # Süresi var, uygulamayı aç ama sayacı göster
                 kalan = DENEME_SURESI_DK - gecen_sure_dk
                 ana_uygulama(kalan_sure_dk=kalan)
-            else:
-                # Süre bitti, ödeme ekranına at
-                payment_screen()
-    else:
-        st.session_state.login_user = None; st.rerun()
+            else: payment_screen()
+    else: st.session_state.login_user = None; st.rerun()
